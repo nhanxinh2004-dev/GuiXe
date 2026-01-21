@@ -10,17 +10,39 @@
     <style>
         body { margin: 0; padding: 0; background: black; font-family: sans-serif; overflow: hidden; }
         
-        /* Camera Container */
+        /* Container Camera */
         #reader { width: 100%; height: 100vh; background: black; }
         
-        /* Màn hình chờ (Hiện ngay lập tức) */
-        #loadingScreen { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: #111; z-index: 10; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            color: white; transition: opacity 0.5s;
+        /* 1. Màn hình Chào mừng (Hiện đầu tiên) */
+        #welcomeScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a1a1a; z-index: 20;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center;
         }
 
+        /* 2. Màn hình Loading (Hiện khi bấm nút) */
+        #loadingScreen { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background: #000; z-index: 10; 
+            display: none; /* Ẩn mặc định */
+            flex-direction: column; align-items: center; justify-content: center; 
+            color: white;
+        }
+
+        /* Nút Bắt đầu to đẹp */
+        .btn-start {
+            width: 200px; height: 200px;
+            border-radius: 50%;
+            border: 5px solid rgba(255,255,255,0.2);
+            background: linear-gradient(145deg, #0d6efd, #0a58ca);
+            color: white; font-size: 1.5rem; font-weight: bold;
+            box-shadow: 0 0 30px rgba(13, 110, 253, 0.4);
+            transition: transform 0.2s;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .btn-start:active { transform: scale(0.95); }
+        
         /* Banner thông báo */
         #notifyBanner {
             position: fixed; top: -100px; left: 0; width: 100%;
@@ -41,7 +63,7 @@
         }
         .bottom-sheet.show { bottom: 0; }
         
-        /* Elements */
+        /* Elements UI */
         .bs-plate { font-size: 2.5rem; font-weight: 900; letter-spacing: 2px; border: 3px solid #000; padding: 5px 25px; border-radius: 8px; margin: 15px 0; background: #ffc107; color: black;}
         .action-label { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         .btn-confirm { width: 100%; padding: 15px; border-radius: 12px; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
@@ -49,6 +71,17 @@
     </style>
 </head>
 <body>
+
+    <div id="welcomeScreen">
+        <h3 class="mb-4 text-white-50">HỆ THỐNG GIỮ XE</h3>
+        
+        <button onclick="userStartScanner()" class="btn-start">
+            <div style="font-size: 3rem;">📷</div>
+            <div class="mt-2">MỞ MÁY</div>
+        </button>
+
+        <p class="mt-4 text-muted small">Nhấn nút để kích hoạt Camera</p>
+    </div>
 
     <div id="loadingScreen">
         <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -68,7 +101,7 @@
         <button onclick="closeSheet()" class="btn-cancel">Hủy bỏ</button>
     </div>
 
-    <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
@@ -77,39 +110,43 @@
         let currentQR = "";
         let isProcessing = false;
 
-        // Chỉ bắt đầu chạy script sau khi trang đã load xong HTML
-        document.addEventListener("DOMContentLoaded", function() {
-            // Delay nhẹ 500ms để trình duyệt vẽ xong UI mượt mà rồi mới bật cam
-            setTimeout(startScanner, 500);
-        });
+        // Hàm được gọi khi user bấm nút "MỞ MÁY"
+        function userStartScanner() {
+            // 1. Ẩn màn hình chào mừng
+            document.getElementById('welcomeScreen').style.display = 'none';
+            
+            // 2. Hiện màn hình loading
+            document.getElementById('loadingScreen').style.display = 'flex';
 
-        function startScanner() {
-            // Kiểm tra thư viện đã tải xong chưa
+            // 3. Kích hoạt âm thanh (Unlock Audio Context cho iOS/Android)
+            const beep = document.getElementById('beepSound');
+            beep.play().then(() => {
+                beep.pause();
+                beep.currentTime = 0;
+            }).catch(e => console.log("Audio unlock failed, but ok."));
+
+            // 4. Bắt đầu gọi Camera
+            startScannerLogic();
+        }
+
+        function startScannerLogic() {
             if (typeof Html5Qrcode === 'undefined') {
-                console.log("Thư viện chưa tải xong, thử lại...");
-                setTimeout(startScanner, 500);
+                setTimeout(startScannerLogic, 500); // Đợi thư viện load
                 return;
             }
 
             scanner = new Html5Qrcode("reader");
-            
-            // Cấu hình tối giản để khởi động nhanh
-            const config = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 },
-                // Bỏ aspectRatio để thư viện tự tính, đỡ lag
-            };
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
             
             scanner.start({ facingMode: "environment" }, config, onScanSuccess)
             .then(() => {
-                // Camera chạy OK -> Ẩn màn hình loading
-                const loading = document.getElementById('loadingScreen');
-                loading.style.opacity = '0';
-                setTimeout(() => { loading.style.display = 'none'; }, 500);
+                // Tắt loading khi cam đã lên
+                document.getElementById('loadingScreen').style.display = 'none';
             })
             .catch(err => {
                 document.getElementById('loadingText').innerHTML = 
-                    `<span class="text-danger">Lỗi: Không thể mở Camera!</span><br><small>${err}</small>`;
+                    `<span class="text-danger">Lỗi: Không thể mở Camera!</span><br><small>${err}</small>
+                     <br><button class="btn btn-outline-light btn-sm mt-3" onclick="location.reload()">Thử lại</button>`;
             });
         }
 
@@ -117,10 +154,9 @@
             if(isProcessing) return;
             isProcessing = true;
             
-            document.getElementById('beepSound').play().catch(e => {}); // Fix lỗi auto-play trên một số trình duyệt
+            document.getElementById('beepSound').play();
             scanner.pause(); 
             
-            // Gọi API
             fetch('/api/process_qr', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -185,7 +221,7 @@
                 }
             })
             .catch(() => {
-                showNotify("Lỗi gửi dữ liệu!", "error");
+                showNotify("Lỗi kết nối!", "error");
                 closeSheet();
             });
         }
