@@ -7,48 +7,26 @@
 </head>
 <body class="bg-light p-3">
     <div class="card mx-auto shadow" style="max-width: 500px;">
-        <div class="card-header bg-success text-white text-center">
-            <h3>ĐĂNG KÝ MỚI</h3>
-        </div>
+        <div class="card-header bg-primary text-white text-center"><h3>ĐĂNG KÝ</h3></div>
         <div class="card-body">
             <form action="/register" method="POST">
-                <div class="mb-3">
-                    <label>Số CCCD (12 số)</label>
-                    <input type="text" name="cccd" class="form-control" maxlength="12" required pattern="\d{12}">
-                </div>
-                <div class="mb-3">
-                    <label>Tạo Mã PIN (6 số)</label>
-                    <input type="tel" name="pin" class="form-control" maxlength="6" required pattern="\d{6}" placeholder="******">
-                </div>
-                <div class="mb-3">
-                    <label>Họ Tên</label>
-                    <input type="text" name="full_name" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label>Địa Chỉ</label>
-                    <input type="text" name="address" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label>Biển Số Xe</label>
-                    <input type="text" name="license_plate" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label>Loại Xe</label>
-                    <input type="text" name="vehicle_type" class="form-control" required>
-                </div>
+                <div class="mb-3"><label>CCCD</label><input type="tel" name="cccd" class="form-control" required></div>
+                <div class="mb-3"><label>PIN (6 số)</label><input type="tel" name="pin" class="form-control" maxlength="6" required></div>
+                <div class="mb-3"><label>Họ Tên</label><input type="text" name="full_name" class="form-control" required></div>
+                <div class="mb-3"><label>Địa Chỉ</label><input type="text" name="address" class="form-control" required></div>
+                <div class="mb-3"><label>Biển Số</label><input type="text" name="license_plate" class="form-control" required placeholder="VD: 29A1-12345"></div>
+                <div class="mb-3"><label>Loại Xe</label><input type="text" name="vehicle_type" class="form-control" required></div>
                 <div class="mb-3">
                     <label>Trạng Thái</label>
-                    <select name="status" class="form-control" required>
-                        <option value="0">Ngoài (Hiện tại đang ở ngoài)</option>
-                        <option value="1">Trong (Hiện tại đang trong bãi)</option>
+                    <select name="status" class="form-select">
+                        <option value="0">Xe Đang Gửi</option>
+                        <option value="1">Xe Đang Không Gửi</option>
                     </select>
                 </div>
-                <button type="submit" class="btn btn-success w-100">ĐĂNG KÝ</button>
+                <button type="submit" class="btn btn-primary w-100">ĐĂNG KÝ</button>
             </form>
         </div>
-        <div class="card-footer text-center">
-            <a href="/login">Đã có tài khoản? Đăng nhập</a>
-        </div>
+        <div class="text-center pb-3"><a href="/login">Đăng nhập</a></div>
     </div>
 </body>
 </html>
