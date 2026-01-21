@@ -4,5 +4,6 @@ psycopg2-binary==2.9.9
 flask-socketio==5.3.6
 eventlet==0.35.2
 gunicorn==21.2.0
-greenlet>=3.0.0
+greenlet==3.0.3
 Werkzeug==3.0.1
+python-dotenv==1.2.1
