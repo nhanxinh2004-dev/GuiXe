@@ -3,245 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Máy Quét Host</title>
-    
+    <title>Scanner</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
     <style>
-        body { margin: 0; padding: 0; background: black; font-family: sans-serif; overflow: hidden; }
+        body { background: black; font-family: sans-serif; overflow: hidden; }
+        #reader { width: 100%; height: 100vh; }
         
-        /* Container Camera */
-        #reader { width: 100%; height: 100vh; background: black; }
-        
-        /* 1. Màn hình Chào mừng (Hiện đầu tiên) */
+        /* Welcome Screen */
         #welcomeScreen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #1a1a1a; z-index: 20;
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #111; z-index: 20; color: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center;
         }
-
-        /* 2. Màn hình Loading (Hiện khi bấm nút) */
-        #loadingScreen { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: #000; z-index: 10; 
-            display: none; /* Ẩn mặc định */
-            flex-direction: column; align-items: center; justify-content: center; 
-            color: white;
-        }
-
-        /* Nút Bắt đầu to đẹp */
         .btn-start {
-            width: 200px; height: 200px;
-            border-radius: 50%;
-            border: 5px solid rgba(255,255,255,0.2);
+            width: 180px; height: 180px; border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.2);
             background: linear-gradient(145deg, #0d6efd, #0a58ca);
-            color: white; font-size: 1.5rem; font-weight: bold;
-            box-shadow: 0 0 30px rgba(13, 110, 253, 0.4);
-            transition: transform 0.2s;
+            color: white; font-weight: bold; font-size: 1.2rem;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: 0 0 30px rgba(13,110,253,0.5);
         }
-        .btn-start:active { transform: scale(0.95); }
-        
-        /* Banner thông báo */
-        #notifyBanner {
-            position: fixed; top: -100px; left: 0; width: 100%;
-            padding: 20px; text-align: center; color: white; font-weight: bold; font-size: 1.2rem;
-            z-index: 200; transition: top 0.4s ease-in-out;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .notify-success { background-color: #198754; }
-        .notify-error { background-color: #dc3545; }
 
-        /* Kết quả (Bottom Sheet) */
+        /* Result Sheet */
         .bottom-sheet {
             position: fixed; bottom: -100%; left: 0; width: 100%;
-            background: white; border-radius: 20px 20px 0 0;
-            padding: 25px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
-            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 100; display: flex; flex-direction: column; align-items: center;
+            background: #f8f9fa; border-radius: 20px 20px 0 0;
+            padding: 25px; transition: bottom 0.3s; z-index: 100;
+            display: flex; flex-direction: column; align-items: center;
         }
         .bottom-sheet.show { bottom: 0; }
-        
-        /* Elements UI */
-        .bs-plate { font-size: 2.5rem; font-weight: 900; letter-spacing: 2px; border: 3px solid #000; padding: 5px 25px; border-radius: 8px; margin: 15px 0; background: #ffc107; color: black;}
-        .action-label { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-        .btn-confirm { width: 100%; padding: 15px; border-radius: 12px; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
-        .btn-cancel { width: 100%; padding: 15px; border: none; background: #e9ecef; color: #495057; border-radius: 12px; font-weight: 600; }
+
+        /* Biển số Host Style */
+        .plate-box {
+            display: inline-block; background: #ffcc00; 
+            border: 4px solid #333; border-radius: 8px;
+            padding: 10px 30px; margin: 15px 0; text-align: center;
+            color: #000; font-family: 'Courier New', monospace; 
+        }
+        .plate-line {
+            font-size: 2.5rem; /* Cỡ chữ to bằng nhau */
+            font-weight: 900; line-height: 1.1; letter-spacing: 2px;
+        }
+        .plate-sep { height: 2px; background: rgba(0,0,0,0.1); margin: 5px 0; }
+
+        #notifyBanner {
+            position: fixed; top: -100px; left: 0; width: 100%;
+            padding: 15px; text-align: center; color: white; font-weight: bold;
+            z-index: 200; transition: top 0.3s;
+        }
+        .bg-success { background: #198754; } .bg-danger { background: #dc3545; }
     </style>
 </head>
 <body>
-
     <div id="welcomeScreen">
-        <h3 class="mb-4 text-white-50">HỆ THỐNG GIỮ XE</h3>
-        
-        <button onclick="userStartScanner()" class="btn-start">
+        <h3 class="mb-5 text-secondary">MÁY QUÉT</h3>
+        <button onclick="startCam()" class="btn-start">
             <div style="font-size: 3rem;">📷</div>
-            <div class="mt-2">MỞ MÁY</div>
+            <div>BẮT ĐẦU</div>
         </button>
-
-        <p class="mt-4 text-muted small">Nhấn nút để kích hoạt Camera</p>
     </div>
 
-    <div id="loadingScreen">
-        <div class="spinner-border text-primary mb-3" role="status"></div>
-        <h5 id="loadingText">Đang khởi động Camera...</h5>
-    </div>
-
-    <div id="notifyBanner">Thông báo</div>
+    <div id="notifyBanner"></div>
     <div id="reader"></div>
 
     <div id="resultSheet" class="bottom-sheet">
-        <div style="width: 50px; height: 5px; background: #dee2e6; border-radius: 10px; margin-bottom: 20px;"></div>
-        <div id="actionLabel" class="action-label">...</div>
-        <div id="bsPlate" class="bs-plate">...</div>
-        <div id="bsName" class="h5 fw-bold mb-1">...</div>
-        <div id="bsType" class="text-muted mb-4">...</div>
-        <button onclick="confirmScan()" id="btnConfirm" class="btn btn-primary btn-confirm">XÁC NHẬN</button>
-        <button onclick="closeSheet()" class="btn-cancel">Hủy bỏ</button>
+        <div style="width:50px; height:5px; background:#ddd; border-radius:10px; margin-bottom:15px;"></div>
+        <div id="actionHeader" class="fw-bold fs-5 text-uppercase mb-2 px-3 py-1 text-white rounded-pill">...</div>
+        
+        <div class="plate-box">
+            <div id="plateTop" class="plate-line">--</div>
+            <div class="plate-sep"></div>
+            <div id="plateBot" class="plate-line">--</div>
+        </div>
+        
+        <div class="text-center mb-3">
+            <div class="text-muted small">Loại xe</div>
+            <div id="vehType" class="fw-bold fs-5">...</div>
+        </div>
+
+        <button onclick="confirm()" id="btnConf" class="btn btn-primary w-100 py-3 fw-bold mb-2">XÁC NHẬN</button>
+        <button onclick="closeSheet()" class="btn btn-light w-100 py-3">Hủy</button>
     </div>
 
-    <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
-
+    <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-
     <script>
-        let scanner;
-        let currentQR = "";
-        let isProcessing = false;
-
-        // Hàm được gọi khi user bấm nút "MỞ MÁY"
-        function userStartScanner() {
-            // 1. Ẩn màn hình chào mừng
-            document.getElementById('welcomeScreen').style.display = 'none';
+        let scanner, currQR;
+        function startCam() {
+            document.getElementById('welcomeScreen').style.display='none';
+            document.getElementById('beep').play().catch(()=>{});
             
-            // 2. Hiện màn hình loading
-            document.getElementById('loadingScreen').style.display = 'flex';
-
-            // 3. Kích hoạt âm thanh (Unlock Audio Context cho iOS/Android)
-            const beep = document.getElementById('beepSound');
-            beep.play().then(() => {
-                beep.pause();
-                beep.currentTime = 0;
-            }).catch(e => console.log("Audio unlock failed, but ok."));
-
-            // 4. Bắt đầu gọi Camera
-            startScannerLogic();
-        }
-
-        function startScannerLogic() {
-            if (typeof Html5Qrcode === 'undefined') {
-                setTimeout(startScannerLogic, 500); // Đợi thư viện load
-                return;
-            }
-
             scanner = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            scanner.start({ facingMode: "environment" }, config, onScanSuccess)
-            .then(() => {
-                // Tắt loading khi cam đã lên
-                document.getElementById('loadingScreen').style.display = 'none';
-            })
-            .catch(err => {
-                document.getElementById('loadingText').innerHTML = 
-                    `<span class="text-danger">Lỗi: Không thể mở Camera!</span><br><small>${err}</small>
-                     <br><button class="btn btn-outline-light btn-sm mt-3" onclick="location.reload()">Thử lại</button>`;
-            });
+            scanner.start({ facingMode: "environment" }, { fps:10, qrbox:{width:250,height:250} }, onScan);
         }
 
-        function onScanSuccess(decodedText) {
-            if(isProcessing) return;
-            isProcessing = true;
-            
-            document.getElementById('beepSound').play();
-            scanner.pause(); 
+        function onScan(txt) {
+            document.getElementById('beep').play();
+            scanner.pause();
+            currQR = txt;
             
             fetch('/api/process_qr', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ qr_string: decodedText })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.error) {
-                    showNotify(data.error, "error");
-                    setTimeout(resetScan, 2000);
-                } else {
-                    showSheet(data);
-                }
-            })
-            .catch(() => {
-                showNotify("Lỗi kết nối mạng!", "error");
-                resetScan();
-            });
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({qr_string:txt})
+            }).then(r=>r.json()).then(d=>{
+                if(d.error) { notify(d.error,'bg-danger'); setTimeout(reset,2000); }
+                else show(d);
+            }).catch(()=>{ notify('Lỗi mạng','bg-danger'); reset(); });
         }
 
-        function showSheet(data) {
-            document.getElementById('bsPlate').innerText = data.license_plate;
-            document.getElementById('bsName').innerText = data.full_name;
-            document.getElementById('bsType').innerText = data.vehicle_type;
+        function show(d) {
+            const h = document.getElementById('actionHeader');
+            h.innerText = d.req_action;
+            h.className = d.req_action.includes('GỬI') ? "fw-bold mb-2 px-3 py-1 text-white rounded-pill bg-success" : "fw-bold mb-2 px-3 py-1 text-white rounded-pill bg-warning text-dark";
             
-            const label = document.getElementById('actionLabel');
-            const btn = document.getElementById('btnConfirm');
-            
-            if(data.req_action === "GỬI XE") {
-                label.innerText = "YÊU CẦU: GỬI XE (IN)";
-                label.className = "action-label text-success";
-                btn.className = "btn btn-success btn-confirm"; 
-            } else {
-                label.innerText = "YÊU CẦU: LẤY XE (OUT)";
-                label.className = "action-label text-warning";
-                btn.className = "btn btn-warning btn-confirm"; 
+            if(d.plate_display) {
+                document.getElementById('plateTop').innerText = d.plate_display.top;
+                document.getElementById('plateBot').innerText = d.plate_display.bot;
             }
+            document.getElementById('vehType').innerText = d.vehicle_type;
             
-            btn.innerText = "XÁC NHẬN";
-            btn.disabled = false;
+            document.getElementById('btnConf').disabled = false;
+            document.getElementById('btnConf').innerText = "XÁC NHẬN";
             document.getElementById('resultSheet').classList.add('show');
         }
 
-        function confirmScan() {
-            const btn = document.getElementById('btnConfirm');
-            btn.innerText = "Đang xử lý...";
-            btn.disabled = true;
-
+        function confirm() {
+            document.getElementById('btnConf').innerText = "...";
             fetch('/api/process_qr', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ qr_string: currentQR, confirm: true })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    showNotify("✅ XÁC NHẬN THÀNH CÔNG", "success");
-                    closeSheet();
-                } else {
-                    showNotify("❌ " + data.error, "error");
-                    closeSheet();
-                }
-            })
-            .catch(() => {
-                showNotify("Lỗi kết nối!", "error");
-                closeSheet();
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({qr_string:currQR, confirm:true})
+            }).then(r=>r.json()).then(d=>{
+                if(d.success) { notify('THÀNH CÔNG','bg-success'); closeSheet(); }
+                else { notify(d.error,'bg-danger'); closeSheet(); }
             });
         }
 
         function closeSheet() {
             document.getElementById('resultSheet').classList.remove('show');
-            setTimeout(resetScan, 500); 
+            setTimeout(reset, 500);
         }
-
-        function resetScan() {
-            isProcessing = false;
-            scanner.resume();
-        }
-
-        function showNotify(msg, type) {
-            const banner = document.getElementById('notifyBanner');
-            banner.innerText = msg;
-            banner.className = type === 'success' ? 'notify-success' : 'notify-error';
-            banner.style.top = "0";
-            setTimeout(() => { banner.style.top = "-100px"; }, 2500);
+        function reset() { scanner.resume(); }
+        function notify(msg, cls) {
+            const b = document.getElementById('notifyBanner');
+            b.innerText=msg; b.className=cls; b.style.top='0';
+            setTimeout(()=>b.style.top='-100px', 2500);
         }
     </script>
 </body>
