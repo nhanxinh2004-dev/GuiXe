@@ -8,53 +8,85 @@
     <style>
         body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
         .login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 20px; }
-        .app-logo { font-size: 3rem; margin-bottom: 20px; }
-        .form-control-lg { border-radius: 12px; padding: 15px; font-size: 1.1rem; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .btn-main { border-radius: 12px; padding: 15px; font-size: 1.2rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 20px; }
-        .saved-user-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; margin-bottom: 20px; }
-        .pin-input { letter-spacing: 8px; font-size: 1.5rem; text-align: center; font-weight: bold; }
+        .app-logo { font-size: 4rem; margin-bottom: 10px; }
+        
+        .form-control-lg { 
+            border-radius: 12px; padding: 15px; font-size: 1.1rem; 
+            border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+        }
+        .form-control-lg:focus { border-color: #0d6efd; box-shadow: 0 0 0 4px rgba(13,110,253,0.15); }
+        
+        .btn-main { 
+            border-radius: 12px; padding: 15px; font-size: 1.2rem; font-weight: 800; 
+            box-shadow: 0 4px 10px rgba(13,110,253,0.3); margin-top: 25px; 
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        
+        .saved-user-card { 
+            background: white; padding: 25px 20px; border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; margin-bottom: 20px; 
+        }
+        
+        /* Style riêng cho ô PIN */
+        .pin-input { 
+            letter-spacing: 15px; /* Giãn cách số cho dễ nhìn */
+            font-size: 2rem; 
+            text-align: center; 
+            font-weight: 900; 
+            font-family: monospace;
+            background-color: #fff;
+        }
     </style>
 </head>
-<div class="login-container">
-        <div class="text-center">
+<body>
+    <div class="login-container">
+        <div class="text-center mb-4">
             <div class="app-logo">🅿️</div>
-            <h4 class="fw-bold mb-4 text-secondary">PARKING SYSTEM</h4>
+            <h4 class="fw-bold text-secondary">HỆ THỐNG GỬI XE</h4>
         </div>
 
         {% if msg %}
-        <div class="alert alert-danger text-center rounded-3">{{ msg }}</div>
+        <div class="alert alert-danger text-center rounded-4 shadow-sm fw-bold">{{ msg }}</div>
         {% endif %}
 
         <form action="/login" method="POST" onsubmit="handleLogin()">
             <div id="cccdGroup">
-                <input type="tel" id="cccdInput" name="cccd" class="form-control form-control-lg mb-3" placeholder="Nhập số CCCD" inputmode="numeric" pattern="[0-9]*">
+                <label class="fw-bold text-muted ms-2 mb-1">Số CCCD</label>
+                <input type="text" id="cccdInput" name="cccd" 
+                       class="form-control form-control-lg mb-3" 
+                       placeholder="Nhập 12 số CCCD" 
+                       inputmode="numeric" pattern="[0-9]*" maxlength="12" required>
             </div>
 
             <div id="welcomeGroup" class="saved-user-card" style="display:none;">
-                <p class="text-muted mb-1">Xin chào,</p>
-                <h3 id="savedCCCDDisplay" class="text-primary fw-bold mb-0">...</h3>
-                <div onclick="forgetUser()" class="mt-3 text-danger small" style="cursor:pointer;">Đăng nhập tài khoản khác</div>
+                <p class="text-muted mb-1 small text-uppercase fw-bold">Xin chào</p>
+                <h3 id="savedCCCDDisplay" class="text-primary fw-bold mb-3">...</h3>
+                <div onclick="forgetUser()" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1">
+                    Đăng nhập tài khoản khác
+                </div>
             </div>
 
-            <div class="mt-3">
-                <input type="password" name="pin" class="form-control form-control-lg pin-input" required placeholder="••••••" maxlength="6" inputmode="numeric" pattern="[0-9]*">
-                <div class="text-center mt-2 text-muted small">Nhập mã PIN 6 số của bạn</div>
+            <div class="mt-2">
+                <label class="fw-bold text-muted ms-2 mb-1">Mã PIN</label>
+                <input type="password" name="pin" 
+                       class="form-control form-control-lg pin-input" 
+                       required placeholder="••••••" 
+                       maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                <div class="text-center mt-3 text-muted small">Nhập 6 số bảo mật</div>
             </div>
 
             <button type="submit" class="btn btn-primary w-100 btn-main">ĐĂNG NHẬP</button>
         </form>
 
         <div class="mt-4 text-center">
-            <a href="/register" class="text-decoration-none text-secondary">Chưa có tài khoản? <strong>Đăng ký ngay</strong></a>
+            <a href="/register" class="text-decoration-none text-secondary fw-bold">Đăng ký tài khoản mới</a>
         </div>
     </div>
 
     <script>
-        // Khi trang load
         window.onload = function() {
             const savedCCCD = localStorage.getItem('parking_cccd');
             if(savedCCCD) {
-                // Nếu có saved CCCD -> Ẩn ô input, hiện Welcome, điền value ẩn vào input
                 document.getElementById('cccdGroup').style.display = 'none';
                 document.getElementById('welcomeGroup').style.display = 'block';
                 document.getElementById('savedCCCDDisplay').innerText = formatCCCD(savedCCCD);
@@ -62,7 +94,6 @@
             }
         }
 
-        // Lưu CCCD khi submit thành công (về mặt client)
         function handleLogin() {
             const val = document.getElementById('cccdInput').value;
             if(val && val.length === 12) {
@@ -70,16 +101,14 @@
             }
         }
 
-        // Nút "Không phải tôi"
         function forgetUser() {
             localStorage.removeItem('parking_cccd');
             location.reload();
         }
 
-        // Format hiển thị cho đẹp (ẩn bớt số giữa)
         function formatCCCD(str) {
             if(str.length < 12) return str;
-            return str.substring(0, 3) + "******" + str.substring(9);
+            return str.substring(0, 3) + " •••••• " + str.substring(9);
         }
     </script>
 </body>

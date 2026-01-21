@@ -1,152 +1,311 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Scanner</title>
+    <title>Máy Quét An Ninh</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { background: black; font-family: sans-serif; overflow: hidden; }
-        #reader { width: 100%; height: 100vh; }
+        body { background-color: #000; font-family: sans-serif; overflow: hidden; }
         
-        /* Welcome Screen */
+        /* SCANNER AREA */
+        #reader { width: 100%; height: 100vh; object-fit: cover; }
+        #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
+        
+        /* LASER SCAN EFFECT */
+        .scan-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,255,0,0.1) 51%, rgba(0,0,0,0) 52%);
+            background-size: 100% 200%;
+            animation: scan 3s linear infinite;
+            pointer-events: none; z-index: 10;
+        }
+        @keyframes scan { 0% {background-position: 0% 0%;} 100% {background-position: 0% 200%;} }
+
+        /* WELCOME SCREEN */
         #welcomeScreen {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: #111; z-index: 20; color: white;
+            background: #121212; z-index: 50;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .btn-start {
-            width: 180px; height: 180px; border-radius: 50%;
-            border: 4px solid rgba(255,255,255,0.2);
-            background: linear-gradient(145deg, #0d6efd, #0a58ca);
+            width: 160px; height: 160px; border-radius: 50%;
+            border: 4px solid rgba(13, 253, 133, 0.3);
+            background: radial-gradient(circle, #0d6efd 0%, #06357a 100%);
             color: white; font-weight: bold; font-size: 1.2rem;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            box-shadow: 0 0 30px rgba(13,110,253,0.5);
+            box-shadow: 0 0 40px rgba(13,110,253,0.4);
+            transition: transform 0.2s;
         }
+        .btn-start:active { transform: scale(0.95); }
 
-        /* Result Sheet */
+        /* BOTTOM SHEET (RESULT) */
         .bottom-sheet {
             position: fixed; bottom: -100%; left: 0; width: 100%;
-            background: #f8f9fa; border-radius: 20px 20px 0 0;
-            padding: 25px; transition: bottom 0.3s; z-index: 100;
+            background: #1e1e1e; border-radius: 25px 25px 0 0;
+            padding: 20px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            z-index: 100; box-shadow: 0 -5px 30px rgba(0,0,0,0.5);
             display: flex; flex-direction: column; align-items: center;
+            max-height: 85vh; overflow-y: auto;
         }
         .bottom-sheet.show { bottom: 0; }
+        .sheet-handle { width: 50px; height: 5px; background: #444; border-radius: 10px; margin-bottom: 20px; }
 
-        /* Biển số Host Style */
-        .plate-box {
-            display: inline-block; background: #ffcc00; 
-            border: 4px solid #333; border-radius: 8px;
-            padding: 10px 30px; margin: 15px 0; text-align: center;
-            color: #000; font-family: 'Courier New', monospace; 
+        /* REALISTIC PLATE STYLE */
+        .plate-container {
+            position: relative;
+            background: #f4c402; /* Màu vàng biển số */
+            border: 3px solid #000;
+            border-radius: 8px;
+            padding: 10px 20px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            color: #000;
+            text-align: center;
+            min-width: 250px;
         }
-        .plate-line {
-            font-size: 2.5rem; /* Cỡ chữ to bằng nhau */
-            font-weight: 900; line-height: 1.1; letter-spacing: 2px;
+        /* Giả lập ốc vít */
+        .plate-bolt {
+            width: 10px; height: 10px; background: #888; border-radius: 50%;
+            position: absolute; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
         }
-        .plate-sep { height: 2px; background: rgba(0,0,0,0.1); margin: 5px 0; }
+        .bolt-tl { top: 8px; left: 8px; } .bolt-tr { top: 8px; right: 8px; }
+        .bolt-bl { bottom: 8px; left: 8px; } .bolt-br { bottom: 8px; right: 8px; }
 
-        #notifyBanner {
-            position: fixed; top: -100px; left: 0; width: 100%;
-            padding: 15px; text-align: center; color: white; font-weight: bold;
-            z-index: 200; transition: top 0.3s;
+        .plate-text {
+            font-family: 'Chakra Petch', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1;
         }
-        .bg-success { background: #198754; } .bg-danger { background: #dc3545; }
+        .plate-top { font-size: 1.8rem; margin-bottom: 5px; }
+        .plate-bot { font-size: 2.5rem; letter-spacing: 2px; }
+
+        /* BUTTONS & UI ELEMENTS */
+        .btn-confirm {
+            background: linear-gradient(45deg, #198754, #20c997);
+            border: none; padding: 15px; font-weight: 800; font-size: 1.2rem;
+            border-radius: 15px; width: 100%; margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.4);
+        }
+        .btn-cancel {
+            background: #333; color: #fff; border: none; padding: 15px;
+            font-weight: 600; border-radius: 15px; width: 100%;
+        }
+
+        /* HEADER CONTROLS */
+        .header-controls {
+            position: fixed; top: 15px; right: 15px; z-index: 20;
+            display: flex; gap: 10px;
+        }
+        .glass-btn {
+            background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            text-decoration: none;
+        }
+
+        /* TOAST NOTIFICATION */
+        .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
     </style>
 </head>
 <body>
+
     <div id="welcomeScreen">
-        <h3 class="mb-5 text-secondary">MÁY QUÉT</h3>
-        <button onclick="startCam()" class="btn-start">
-            <div style="font-size: 3rem;">📷</div>
-            <div>BẮT ĐẦU</div>
+        <h3 class="mb-5 text-secondary fw-bold">MÁY QUÉT AN NINH</h3>
+        <button onclick="startCam()" class="btn-start" aria-label="Bắt đầu quét">
+            <i class="fas fa-camera fa-3x mb-2"></i>
+            <div>KÍCH HOẠT</div>
         </button>
+        <p class="text-muted mt-4 small">Chạm để bắt đầu phiên làm việc</p>
     </div>
 
-    <div id="notifyBanner"></div>
-    <div id="reader"></div>
+    <div class="header-controls">
+        <a href="#" onclick="alert('Tính năng nhập tay đang phát triển')" class="glass-btn" aria-label="Nhập thủ công">
+            <i class="fas fa-keyboard"></i>
+        </a>
+        <a href="/" class="glass-btn bg-danger border-0" aria-label="Thoát">
+            <i class="fas fa-power-off"></i>
+        </a>
+    </div>
+
+    <div id="notifyBanner" class="toast-container"></div>
+    
+    <div style="position: relative; height: 100vh; width: 100vw; background: black;">
+        <div id="reader"></div>
+        <div class="scan-overlay"></div>
+    </div>
 
     <div id="resultSheet" class="bottom-sheet">
-        <div style="width:50px; height:5px; background:#ddd; border-radius:10px; margin-bottom:15px;"></div>
-        <div id="actionHeader" class="fw-bold fs-5 text-uppercase mb-2 px-3 py-1 text-white rounded-pill">...</div>
+        <div class="sheet-handle"></div>
         
-        <div class="plate-box">
-            <div id="plateTop" class="plate-line">--</div>
-            <div class="plate-sep"></div>
-            <div id="plateBot" class="plate-line">--</div>
-        </div>
+        <div id="actionBadge" class="badge rounded-pill px-4 py-2 mb-3 fs-6">...</div>
         
-        <div class="text-center mb-3">
-            <div class="text-muted small">Loại xe</div>
-            <div id="vehType" class="fw-bold fs-5">...</div>
+        <div class="text-center mb-2">
+            <span class="text-muted small text-uppercase">Chủ xe</span><br>
+            <strong id="userName" class="fs-5 text-white">...</strong>
         </div>
 
-        <button onclick="confirm()" id="btnConf" class="btn btn-primary w-100 py-3 fw-bold mb-2">XÁC NHẬN</button>
-        <button onclick="closeSheet()" class="btn btn-light w-100 py-3">Hủy</button>
+        <div class="plate-container">
+            <div class="plate-bolt bolt-tl"></div><div class="plate-bolt bolt-tr"></div>
+            <div class="plate-bolt bolt-bl"></div><div class="plate-bolt bolt-br"></div>
+            
+            <div class="plate-text plate-top" id="plateTop">--</div>
+            <div style="height: 2px; background: rgba(0,0,0,0.1); margin: 2px 10px;"></div>
+            <div class="plate-text plate-bot" id="plateBot">--</div>
+        </div>
+        
+        <div class="d-flex justify-content-between w-100 px-3 mb-4 text-white-50 small">
+            <div><i class="fas fa-motorcycle me-1"></i> <span id="vehType">...</span></div>
+            <div><i class="fas fa-id-card me-1"></i> <span id="cccdDisplay">...</span></div>
+        </div>
+
+        <button onclick="confirmAction()" id="btnConf" class="btn-confirm">
+            <span>XÁC NHẬN</span>
+        </button>
+        <button onclick="closeSheet()" id="btnCancel" class="btn-cancel">Hủy bỏ</button>
     </div>
 
     <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script>
         let scanner, currQR;
+        const beepSound = document.getElementById('beep');
+
         function startCam() {
             document.getElementById('welcomeScreen').style.display='none';
-            document.getElementById('beep').play().catch(()=>{});
+            try { beepSound.play().catch(()=>{}); } catch(e){}
             
             scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps:10, qrbox:{width:250,height:250} }, onScan);
+            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+            
+            // Prefer back camera
+            scanner.start({ facingMode: "environment" }, config, onScan, onScanError)
+            .catch(err => showToast("Không thể mở Camera: " + err, 'danger'));
         }
 
         function onScan(txt) {
-            document.getElementById('beep').play();
-            scanner.pause();
-            currQR = txt;
+            // Feedback ngay lập tức
+            beepSound.play();
+            hapticFeedback([50]); // Rung nhẹ
+            scanner.pause(); // Dừng quét tạm thời
+            
+            showToast("Đang kiểm tra...", "info");
             
             fetch('/api/process_qr', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({qr_string:txt})
-            }).then(r=>r.json()).then(d=>{
-                if(d.error) { notify(d.error,'bg-danger'); setTimeout(reset,2000); }
-                else show(d);
-            }).catch(()=>{ notify('Lỗi mạng','bg-danger'); reset(); });
+                body:JSON.stringify({qr_string: txt})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if(d.error) {
+                    showToast(d.error, 'danger');
+                    hapticFeedback([100, 50, 100]); // Rung lỗi (dài-ngắn-dài)
+                    setTimeout(resetScanner, 2000);
+                } else {
+                    currQR = txt;
+                    showResult(d);
+                }
+            })
+            .catch(() => {
+                showToast('Lỗi kết nối mạng!', 'danger');
+                setTimeout(resetScanner, 2000);
+            });
         }
 
-        function show(d) {
-            const h = document.getElementById('actionHeader');
-            h.innerText = d.req_action;
-            h.className = d.req_action.includes('GỬI') ? "fw-bold mb-2 px-3 py-1 text-white rounded-pill bg-success" : "fw-bold mb-2 px-3 py-1 text-white rounded-pill bg-warning text-dark";
+        function onScanError(err) {
+            // Không làm gì để tránh spam log
+        }
+
+        function showResult(data) {
+            // Update UI
+            const badge = document.getElementById('actionBadge');
+            const isIN = data.req_action.includes('GỬI');
             
-            if(d.plate_display) {
-                document.getElementById('plateTop').innerText = d.plate_display.top;
-                document.getElementById('plateBot').innerText = d.plate_display.bot;
-            }
-            document.getElementById('vehType').innerText = d.vehicle_type;
-            
-            document.getElementById('btnConf').disabled = false;
-            document.getElementById('btnConf').innerText = "XÁC NHẬN";
+            badge.innerText = data.req_action;
+            badge.className = isIN 
+                ? "badge rounded-pill px-4 py-2 mb-3 fs-6 bg-success" 
+                : "badge rounded-pill px-4 py-2 mb-3 fs-6 bg-warning text-dark";
+
+            document.getElementById('userName').innerText = data.full_name;
+            document.getElementById('plateTop').innerText = data.plate_display.top;
+            document.getElementById('plateBot').innerText = data.plate_display.bot;
+            document.getElementById('vehType').innerText = data.vehicle_type;
+            document.getElementById('cccdDisplay').innerText = data.cccd;
+
+            // Reset button state
+            const btn = document.getElementById('btnConf');
+            btn.innerHTML = `<span>XÁC NHẬN</span>`;
+            btn.disabled = false;
+            document.getElementById('btnCancel').disabled = false;
+
             document.getElementById('resultSheet').classList.add('show');
         }
 
-        function confirm() {
-            document.getElementById('btnConf').innerText = "...";
+        function confirmAction() {
+            const btn = document.getElementById('btnConf');
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...`;
+            document.getElementById('btnCancel').disabled = true;
+
             fetch('/api/process_qr', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({qr_string:currQR, confirm:true})
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) { notify('THÀNH CÔNG','bg-success'); closeSheet(); }
-                else { notify(d.error,'bg-danger'); closeSheet(); }
+                body:JSON.stringify({qr_string: currQR, confirm: true})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if(d.success) {
+                    showToast('THÀNH CÔNG!', 'success');
+                    hapticFeedback([100, 50, 100, 50, 200]); // Rung kiểu thành công
+                    closeSheet();
+                } else {
+                    showToast(d.error, 'danger');
+                    closeSheet();
+                }
+            })
+            .catch(err => {
+                showToast('Lỗi mạng khi xác nhận', 'danger');
+                closeSheet();
             });
         }
 
         function closeSheet() {
             document.getElementById('resultSheet').classList.remove('show');
-            setTimeout(reset, 500);
+            setTimeout(resetScanner, 500);
         }
-        function reset() { scanner.resume(); }
-        function notify(msg, cls) {
-            const b = document.getElementById('notifyBanner');
-            b.innerText=msg; b.className=cls; b.style.top='0';
-            setTimeout(()=>b.style.top='-100px', 2500);
+
+        function resetScanner() {
+            if(scanner) scanner.resume();
+        }
+
+        // Haptic helper
+        function hapticFeedback(pattern) {
+            if (navigator.vibrate) navigator.vibrate(pattern);
+        }
+
+        // Toast Helper
+        function showToast(msg, type='primary') {
+            const container = document.getElementById('notifyBanner');
+            const color = type === 'danger' ? 'bg-danger' : (type === 'success' ? 'bg-success' : 'bg-primary');
+            
+            const toastHTML = `
+                <div class="toast show align-items-center text-white ${color} border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body fw-bold">
+                            ${msg}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>`;
+            
+            container.innerHTML = toastHTML;
+            // Auto hide after 3s
+            setTimeout(() => { container.innerHTML = ''; }, 3000);
         }
     </script>
 </body>
