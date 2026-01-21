@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
+# THÊM MỚI:
+from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_parking_demo')
@@ -15,6 +17,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+# CẤU HÌNH SOCKETIO
+# cors_allowed_origins="*" để chấp nhận kết nối từ mọi tên miền (Render, localhost...)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet') 
 
 # --- ĐỊNH NGHĨA BẢNG (MODEL) ---
 class User(db.Model):
@@ -54,6 +60,17 @@ def check_session_timeout():
         if now > expiry:
             session.clear()
             return redirect(url_for('login', timeout=1))
+
+# --- EVENT SOCKET ---
+@socketio.on('join_room')
+def handle_join(data):
+    """
+    Khi Client vào màn hình QR, họ sẽ join vào 1 "phòng" riêng
+    Tên phòng chính là số CCCD của họ.
+    """
+    room = data.get('cccd')
+    join_room(room)
+    print(f"Client {room} đã tham gia room nhận thông báo.")
 
 # --- ROUTES ---
 
@@ -174,12 +191,18 @@ def process_qr():
     if action_qr == "OUT" and user.status == 0:
         return jsonify({'error': 'Xe đang ở ngoài!'}), 409
         
-    # Nếu Confirm
+    # ĐOẠN NÀY QUAN TRỌNG: Khi Host bấm Confirm
     if data.get('confirm') == True:
+        # 1. Update DB
         user.status = 1 if action_qr == "IN" else 0
         new_log = ParkingLog(cccd=cccd_qr, action=action_qr)
         db.session.add(new_log)
         db.session.commit()
+        
+        # 2. BẮN TÍN HIỆU WEBSOCKET VỀ CLIENT
+        # Gửi sự kiện 'confirmation_success' vào phòng của user đó
+        socketio.emit('confirmation_success', {'status': 'ok'}, to=cccd_qr)
+        
         return jsonify({'success': True})
         
     return jsonify({
@@ -192,4 +215,5 @@ def process_qr():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Thay app.run() bằng socketio.run()
+    socketio.run(app, debug=True, port=5000)

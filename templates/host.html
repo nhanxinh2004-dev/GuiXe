@@ -7,159 +7,100 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: black; font-family: sans-serif; }
+        body { margin: 0; padding: 0; background: black; font-family: sans-serif; overflow: hidden; }
         
-        /* Camera Fullscreen */
+        /* Camera */
         #reader { width: 100%; height: 100vh; object-fit: cover; }
-        #reader video { object-fit: cover; width: 100%; height: 100%; }
+        
+        /* Màn hình chờ Camera (Khắc phục lỗi load lâu) */
+        #cameraLoading { position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
 
-        /* Bottom Sheet */
+        /* Notification Banner (Thay cho Popup Alert) */
+        #notifyBanner {
+            position: fixed; top: -100px; left: 0; width: 100%;
+            padding: 20px; text-align: center; color: white; font-weight: bold; font-size: 1.2rem;
+            z-index: 200; transition: top 0.4s ease-in-out;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .notify-success { background-color: #198754; } /* Xanh */
+        .notify-error { background-color: #dc3545; }   /* Đỏ */
+
+        /* Bottom Sheet Kết quả */
         .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: white;
-            border-radius: 20px 20px 0 0;
-            padding: 20px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            max-height: 80vh;
-            overflow-y: auto;
+            position: fixed; bottom: -100%; left: 0; width: 100%;
+            background: white; border-radius: 20px 20px 0 0;
+            padding: 25px; box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100; display: flex; flex-direction: column; align-items: center;
         }
+        .bottom-sheet.show { bottom: 0; }
         
-        .bottom-sheet.active {
-            transform: translateY(0);
-        }
-        
-        .sheet-dragger {
-            width: 40px;
-            height: 4px;
-            background: #ccc;
-            border-radius: 2px;
-            margin: 0 auto 15px;
-        }
-        
-        .plate-display {
-            font-size: 2.2rem;
-            font-weight: bold;
-            text-align: center;
-            background: #ffcc00;
-            color: #000;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 15px 0;
-            text-transform: uppercase;
-        }
-        
-        .status-badge {
-            display: block;
-            text-align: center;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        
-        .status-in { background: #d1e7dd; color: #0f5132; }
-        .status-out { background: #e9ecef; color: #495057; }
-        
-        .action-btns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        
-        .btn-confirm { background: #28a745; border: none; }
-        .btn-cancel { background: #dc3545; border: none; }
-        
-        .scan-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 250px;
-            height: 250px;
-            border: 3px solid #00ff00;
-            border-radius: 20px;
-            box-shadow: 0 0 0 1000px rgba(0,0,0,0.5);
-        }
-        
-        .scan-hint {
-            position: absolute;
-            bottom: 50px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: white;
-            font-size: 1.2rem;
-            text-shadow: 0 0 5px rgba(0,0,0,0.8);
-        }
+        /* Các thành phần UI khác */
+        .bs-plate { font-size: 2.5rem; font-weight: 900; letter-spacing: 2px; border: 3px solid #000; padding: 5px 25px; border-radius: 8px; margin: 15px 0; background: #ffc107; color: black;}
+        .action-label { font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .btn-confirm { width: 100%; padding: 15px; border-radius: 12px; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
+        .btn-cancel { width: 100%; padding: 15px; border: none; background: #e9ecef; color: #495057; border-radius: 12px; font-weight: 600; }
     </style>
 </head>
 <body>
-    <div id="reader">
-        <div class="scan-overlay"></div>
-        <div class="scan-hint">Đưa mã QR vào khung để quét</div>
+
+    <div id="cameraLoading">
+        <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4>Đang khởi động Camera...</h4>
+        <p class="text-white-50 small">Vui lòng cấp quyền nếu được hỏi</p>
     </div>
 
+    <div id="notifyBanner">Thông báo ở đây</div>
+
+    <div id="reader"></div>
+
     <div id="resultSheet" class="bottom-sheet">
-        <div class="sheet-dragger"></div>
+        <div style="width: 50px; height: 5px; background: #dee2e6; border-radius: 10px; margin-bottom: 20px;"></div>
         
-        <h4 class="text-center mb-3" id="actionTitle">...</h4>
-        
-        <div class="plate-display" id="plateNumber">...</div>
-        
-        <div class="text-center mb-3">
-            <span id="statusBadge" class="status-badge">...</span>
-        </div>
-        
-        <div class="info-item mb-2">
-            <strong>Chủ xe:</strong> <span id="ownerName">...</span>
-        </div>
-        
-        <div class="info-item mb-2">
-            <strong>Loại xe:</strong> <span id="vehicleType">...</span>
-        </div>
-        
-        <div class="info-item mb-3">
-            <strong>CCCD:</strong> <span id="cccdInfo">...</span>
-        </div>
-        
-        <div class="action-btns">
-            <button onclick="cancelScan()" class="btn btn-cancel text-white">Hủy</button>
-            <button onclick="confirmScan()" class="btn btn-confirm text-white">Xác nhận</button>
-        </div>
+        <div id="actionLabel" class="action-label">...</div>
+        <div id="bsPlate" class="bs-plate">...</div>
+        <div id="bsName" class="h5 fw-bold mb-1">...</div>
+        <div id="bsType" class="text-muted mb-4">...</div>
+
+        <button onclick="confirmScan()" id="btnConfirm" class="btn btn-primary btn-confirm">XÁC NHẬN</button>
+        <button onclick="closeSheet()" class="btn-cancel">Hủy bỏ</button>
     </div>
 
     <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 
     <script>
-        let html5QrcodeScanner;
-        let currentQRString = "";
+        let scanner;
+        let currentQR = "";
+        let isProcessing = false;
 
         function startScanner() {
-            html5QrcodeScanner = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            scanner = new Html5Qrcode("reader");
             
-            html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+            // Cấu hình tối ưu tốc độ: Giảm fps xuống 10, giảm kích thước vùng quét
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: window.innerHeight/window.innerWidth 
+            };
+            
+            // Khởi động camera
+            scanner.start({ facingMode: "environment" }, config, (decodedText) => {
+                if(isProcessing) return;
+                isProcessing = true;
+                document.getElementById('beepSound').play();
+                scanner.pause(); // Dừng hình ngay để xử lý
+                fetchInfo(decodedText);
+            })
             .catch(err => {
-                console.error("Lỗi camera", err);
-                alert("Không thể mở camera. Vui lòng cấp quyền!");
+                console.error("Camera error:", err);
+                showNotification("Không thể mở camera. Vui lòng cấp quyền!", "error");
+                document.getElementById('cameraLoading').style.display = 'none';
             });
         }
 
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById('beepSound').play();
-            html5QrcodeScanner.pause(); 
-            fetchInfo(decodedText);
-        }
-
         function fetchInfo(qrString) {
-            currentQRString = qrString;
-
+            currentQR = qrString;
+            
             fetch('/api/process_qr', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -168,69 +109,93 @@
             .then(res => res.json())
             .then(data => {
                 if(data.error) {
-                    alert(data.error);
-                    html5QrcodeScanner.resume();
+                    showNotification(data.error, "error");
+                    isProcessing = false;
+                    scanner.resume();
                 } else {
                     showResultSheet(data);
                 }
             })
             .catch(err => {
-                alert("Lỗi kết nối Server!");
-                html5QrcodeScanner.resume();
+                console.error("API error:", err);
+                showNotification("Lỗi kết nối server!", "error");
+                isProcessing = false;
+                scanner.resume();
             });
         }
 
         function showResultSheet(data) {
-            document.getElementById('actionTitle').innerText = data.req_action;
-            document.getElementById('plateNumber').innerText = data.license_plate;
-            document.getElementById('ownerName').innerText = data.full_name;
-            document.getElementById('vehicleType').innerText = data.vehicle_type;
-            document.getElementById('cccdInfo').innerText = data.cccd;
-
-            // Set status badge based on action
-            const statusBadge = document.getElementById('statusBadge');
-            if(data.req_action === "GỬI XE") {
-                statusBadge.className = "status-badge status-in";
-                statusBadge.innerText = "XE CẦN GỬI";
+            document.getElementById('actionLabel').textContent = data.req_action;
+            document.getElementById('bsPlate').textContent = data.license_plate;
+            document.getElementById('bsName').textContent = data.full_name;
+            document.getElementById('bsType').textContent = data.vehicle_type;
+            
+            // Cập nhật màu theo loại hành động
+            if(data.req_action.includes("GỬI")) {
+                document.getElementById('actionLabel').style.color = "#0d6efd";
             } else {
-                statusBadge.className = "status-badge status-out";
-                statusBadge.innerText = "XE CẦN LẤY";
+                document.getElementById('actionLabel').style.color = "#fd7e14";
             }
-
-            document.getElementById('resultSheet').classList.add('active');
-        }
-
-        function cancelScan() {
-            document.getElementById('resultSheet').classList.remove('active');
-            html5QrcodeScanner.resume();
+            
+            document.getElementById('resultSheet').classList.add('show');
+            document.getElementById('cameraLoading').style.display = 'none';
         }
 
         function confirmScan() {
+            const btn = document.getElementById('btnConfirm');
+            btn.textContent = "Đang xử lý...";
+            btn.disabled = true;
+            
             fetch('/api/process_qr', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
-                    qr_string: currentQRString,
+                    qr_string: currentQR,
                     confirm: true
                 })
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    alert("✅ THÀNH CÔNG!");
-                    location.reload();
+                    closeSheet();
+                    showNotification("Xác nhận thành công!", "success");
                 } else {
-                    alert("❌ LỖI: " + data.error);
-                    cancelScan();
+                    showNotification("Lỗi: " + data.error, "error");
                 }
+                btn.textContent = "XÁC NHẬN";
+                btn.disabled = false;
             })
             .catch(err => {
-                alert("Lỗi mạng!");
-                cancelScan();
+                console.error("Confirm error:", err);
+                showNotification("Lỗi xác nhận!", "error");
+                btn.textContent = "XÁC NHẬN";
+                btn.disabled = false;
             });
         }
 
-        window.onload = startScanner;
+        function closeSheet() {
+            document.getElementById('resultSheet').classList.remove('show');
+            isProcessing = false;
+            setTimeout(() => {
+                scanner.resume();
+            }, 300);
+        }
+
+        function showNotification(message, type) {
+            const banner = document.getElementById('notifyBanner');
+            banner.textContent = message;
+            banner.className = type === "success" ? "notify-success" : "notify-error";
+            banner.style.top = "0";
+            
+            setTimeout(() => {
+                banner.style.top = "-100px";
+            }, 3000);
+        }
+
+        // Khởi động khi DOM sẵn sàng
+        window.addEventListener('load', () => {
+            setTimeout(startScanner, 1000); // Chờ 1s để hiện hiệu ứng loading
+        });
     </script>
 </body>
 </html>

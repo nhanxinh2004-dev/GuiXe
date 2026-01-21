@@ -6,113 +6,94 @@
     <title>Trang Chủ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- THÊM THƯ VIỆN SOCKET.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { background-color: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        
-        /* Header */
-        .app-header { background: white; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .logout-btn { color: #dc3545; font-weight: 500; text-decoration: none; font-size: 0.9rem; }
-        
-        /* Info Card */
-        .info-card { background: white; margin: 20px; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .plate-number { font-size: 1.8rem; font-weight: 800; color: #333; letter-spacing: 1px; }
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-top: 5px; }
-        .st-out { background: #e9ecef; color: #495057; }
-        .st-in { background: #d1e7dd; color: #0f5132; }
-
-        /* Action Button Area */
-        .action-container { padding: 0 20px; margin-top: 20px; }
-        .big-btn { 
-            width: 100%; aspect-ratio: 1/1; max-height: 300px; 
-            border-radius: 24px; border: none; 
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            transition: transform 0.1s;
-        }
+        body { background-color: #f8f9fa; font-family: -apple-system, sans-serif; }
+        .app-header { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .info-card { background: white; margin: 20px; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .big-btn { width: 100%; aspect-ratio: 1/1; max-height: 280px; border-radius: 24px; border: none; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.15); transition: transform 0.1s; }
         .big-btn:active { transform: scale(0.98); }
-        .big-btn h1 { font-size: 2.5rem; font-weight: 800; margin: 0; }
-        .big-btn span { font-size: 1.1rem; opacity: 0.9; margin-top: 5px; }
-        
         .btn-in { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
-        .btn-out { background: linear-gradient(135deg, #ffc107, #fd7e14); color: #000 !important; }
-
-        /* QR Area */
-        #qrArea { background: white; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #qrcode img { display: block; margin: 0 auto; }
-        .timer-pill { background: #fee2e2; color: #b91c1c; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; margin-top: 15px; }
+        .btn-out { background: linear-gradient(135deg, #ffc107, #fd7e14); color: black !important; }
         
-        /* Session Timer Small */
-        .sess-timer { font-size: 0.75rem; color: #6c757d; background: #e9ecef; padding: 2px 8px; border-radius: 4px; }
+        /* QR Overlay */
+        #qrArea { background: white; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* Loading Overlay khi check trạng thái */
+        #successOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(25, 135, 84, 0.95); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;}
     </style>
 </head>
 <body>
 
     <div class="app-header">
-        <div>
-            <div class="fw-bold">{{ user.full_name }}</div>
-            <div class="sess-timer">⏳ <span id="sessCount">--:--</span></div>
-        </div>
-        <a href="/logout" class="logout-btn">Đăng xuất</a>
+        <div class="fw-bold">{{ user.full_name }}</div>
+        <a href="/logout" class="text-danger text-decoration-none fw-bold">Thoát</a>
     </div>
 
-    <div class="info-card text-center">
-        <div class="text-muted small text-uppercase">Biển số xe</div>
-        <div class="plate-number text-uppercase">{{ user.license_plate }}</div>
-        <div class="text-muted small mt-1">{{ user.vehicle_type }}</div>
-        
-        <div class="mt-2">
-            {% if user.status == 0 %}
-                <span class="status-badge st-out">● Xe đang ở ngoài</span>
-            {% else %}
-                <span class="status-badge st-in">● Xe đang trong bãi</span>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="action-container" id="actionArea">
+    <div class="info-card">
+        <h2 class="text-uppercase fw-bold mb-0">{{ user.license_plate }}</h2>
+        <div class="text-muted small mb-2">{{ user.vehicle_type }}</div>
         {% if user.status == 0 %}
-            <button onclick="createQR()" class="big-btn btn-in">
-                <h1>GỬI XE</h1>
-                <span>Chạm để lấy mã</span>
+            <span class="badge bg-secondary">ĐANG Ở NGOÀI</span>
+        {% else %}
+            <span class="badge bg-success">ĐANG TRONG BÃI</span>
+        {% endif %}
+    </div>
+
+    <div class="container mt-4">
+        {% if user.status == 0 %}
+            <button onclick="createQR('IN')" class="big-btn btn-in">
+                <h1 class="fw-bold display-1 mb-0">IN</h1>
+                <span>GỬI XE</span>
             </button>
         {% else %}
-            <button onclick="createQR()" class="big-btn btn-out">
-                <h1>LẤY XE</h1>
-                <span>Chạm để lấy mã</span>
+            <button onclick="createQR('OUT')" class="big-btn btn-out">
+                <h1 class="fw-bold display-1 mb-0">OUT</h1>
+                <span>LẤY XE</span>
             </button>
         {% endif %}
     </div>
 
     <div id="qrArea" style="display:none;">
-        <h2 id="qrTitle" class="fw-bold mb-4"></h2>
-        
+        <h3 id="qrTitle" class="fw-bold mb-4">...</h3>
         <div class="p-3 bg-white border rounded shadow-sm">
             <div id="qrcode"></div>
         </div>
-
-        <div class="timer-pill">Hết hạn sau: <span id="qrCount">05:00</span></div>
-        <p class="text-muted mt-3 text-center small">Đưa mã này cho bảo vệ<br>để quét xác nhận.</p>
-
+        <div class="mt-4 text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Đang chờ bảo vệ quét...</p>
+        </div>
         <button onclick="location.reload()" class="btn btn-secondary rounded-pill px-4 mt-4">Đóng lại</button>
     </div>
 
+    <div id="successOverlay">
+        <div style="font-size: 5rem;">✅</div>
+        <h2>ĐÃ XÁC NHẬN!</h2>
+        <p>Hệ thống đang cập nhật...</p>
+    </div>
+
     <script>
-        let sessionTimeLeft = parseInt('{{ remaining }}');
-        let qrInterval;
+        let socket;
+        let currentExpectedAction = "";
 
-        // Xử lý đếm ngược Session Logout
-        const sessTimer = setInterval(() => {
-            sessionTimeLeft--;
-            let m = Math.floor(sessionTimeLeft / 60);
-            let s = sessionTimeLeft % 60;
-            document.getElementById('sessCount').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-            if(sessionTimeLeft <= 0) {
-                clearInterval(sessTimer);
-                window.location.href = "/logout";
-            }
-        }, 1000);
+        // Kết nối Socket ngay khi vào trang
+        function initSocket() {
+            socket = io(); // Kết nối tới server
+            
+            // Báo danh với Server: "Tôi là user có CCCD này"
+            socket.emit('join_room', { cccd: "{{ user.cccd }}" });
 
-        function createQR() {
+            // LẮNG NGHE SỰ KIỆN: Khi Host xác nhận
+            socket.on('confirmation_success', function(data) {
+                // Server báo xong -> Hiện màn hình xanh ngay lập tức
+                showSuccessAndReload();
+            });
+        }
+
+        function createQR(actionType) {
+            currentExpectedAction = actionType;
+            
             fetch('/api/generate_qr', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -123,12 +104,11 @@
                 return res.json();
             })
             .then(data => {
-                sessionTimeLeft = data.new_timeout; 
-                
-                document.getElementById('qrArea').style.display = 'flex'; // Dùng flex để căn giữa
+                // Hiện QR
+                document.getElementById('qrArea').style.display = 'flex';
                 document.getElementById('qrTitle').innerText = data.action_name;
-                document.getElementById('qrTitle').className = data.action_name === "GỬI XE" ? "text-primary fw-bold mb-4" : "text-warning fw-bold mb-4";
-
+                document.getElementById('qrTitle').className = actionType === "IN" ? "text-primary fw-bold mb-4" : "text-warning fw-bold mb-4";
+                
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById("qrcode"), {
                     text: data.qr_data,
@@ -136,23 +116,20 @@
                     height: 260
                 });
 
-                startQRTimer(300);
+                // Không cần polling nữa, đã dùng socket
             });
         }
 
-        function startQRTimer(duration) {
-            let timer = duration;
-            clearInterval(qrInterval);
-            qrInterval = setInterval(() => {
-                let m = Math.floor(timer / 60);
-                let s = timer % 60;
-                document.getElementById('qrCount').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-                if (--timer < 0) {
-                    clearInterval(qrInterval);
-                    location.reload();
-                }
-            }, 1000);
+        function showSuccessAndReload() {
+            document.getElementById('successOverlay').style.display = 'flex';
+            // Đợi 1.5 giây cho user sướng rồi reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         }
+
+        // Chạy socket khi load trang
+        window.onload = initSocket;
     </script>
 </body>
 </html>
