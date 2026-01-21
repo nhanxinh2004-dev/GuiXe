@@ -1,11 +1,15 @@
+# --- DÒNG 1 VÀ 2 BẮT BUỘC PHẢI Ở TRÊN CÙNG ---
+import eventlet
+eventlet.monkey_patch() 
+
 import os
 import hashlib
 import time
 from datetime import datetime, timedelta
+# Các import khác xuống dưới này
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
-# THÊM MỚI:
 from flask_socketio import SocketIO, emit, join_room
 
 app = Flask(__name__)
