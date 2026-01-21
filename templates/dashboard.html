@@ -3,226 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Trang Chủ</title>
+    <title>Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { background-color: #eef2f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #eef2f6; font-family: sans-serif; }
+        .app-header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);}
         
-        /* Header */
-        .app-header { background: #fff; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;}
+        .info-card { background: white; margin: 20px; padding: 25px 20px; border-radius: 24px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
         
-        /* Card chứa thông tin */
-        .info-card { background: white; margin: 20px; padding: 25px 20px; border-radius: 24px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.06); position: relative; overflow: hidden; }
-        
-        /* Biển số xe Style */
+        /* STYLE BIỂN SỐ */
         .plate-box {
             display: inline-block;
-            background: #ffcc00; /* Màu vàng biển dịch vụ hoặc #fff biển trắng */
+            background: #ffcc00; 
             border: 4px solid #333;
             border-radius: 8px;
-            padding: 5px 15px;
+            padding: 10px 25px;
             color: #000;
-            font-family: 'Courier New', Courier, monospace; /* Font monospace cho giống số xe */
+            font-family: 'Courier New', Courier, monospace; 
             text-transform: uppercase;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             margin-bottom: 15px;
-            min-width: 180px;
+            text-align: center;
         }
-        .plate-top { font-size: 1.5rem; font-weight: 700; line-height: 1.2; border-bottom: 2px solid #00000020; padding-bottom: 2px; margin-bottom: 2px;}
-        .plate-bot { font-size: 2.2rem; font-weight: 800; line-height: 1.1; letter-spacing: 2px; }
-
-        /* Thông tin phụ */
-        .info-row { margin-top: 10px; font-size: 0.95rem; color: #555; }
-        .info-val { font-weight: bold; color: #222; }
+        .plate-line {
+            font-size: 2.2rem; /* Cỡ chữ bằng nhau */
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+        .plate-top-line { border-bottom: 2px solid rgba(0,0,0,0.1); margin-bottom: 5px; padding-bottom: 5px; }
         
-        /* Trạng thái */
-        .status-badge { font-size: 1rem; padding: 8px 20px; border-radius: 30px; font-weight: 700; margin-top: 15px; display: inline-block;}
-        .st-in { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; } /* Xanh */
-        .st-out { background: #fff3cd; color: #664d03; border: 1px solid #ffecb5; } /* Vàng */
-
-        /* Nút bấm to */
-        .action-container { padding: 0 20px; }
+        /* Buttons */
         .big-btn { 
             width: 100%; aspect-ratio: 1.2/1; max-height: 250px; 
             border-radius: 24px; border: none; color: white; 
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: transform 0.1s; 
-            background-size: 200% auto;
         }
         .big-btn:active { transform: scale(0.97); }
-        
-        .btn-in { 
-            background-image: linear-gradient(to right, #1D976C 0%, #93F9B9 51%, #1D976C 100%); 
-        }
-        .btn-out { 
-            background-image: linear-gradient(to right, #FF8008 0%, #FFC837 51%, #FF8008 100%); 
-        }
-        
+        .btn-in { background-image: linear-gradient(to right, #1D976C, #93F9B9); }
+        .btn-out { background-image: linear-gradient(to right, #FF8008, #FFC837); }
         .btn-icon { font-size: 3rem; margin-bottom: 10px; }
         .btn-text { font-size: 1.3rem; font-weight: 800; }
-        .btn-sub { font-size: 0.9rem; opacity: 0.9; font-weight: 500; }
-
-        /* Footer Log */
-        .log-footer { text-align: center; margin-top: 20px; color: #888; font-size: 0.85rem; }
-
-        /* QR Overlay */
+        
         #qrArea { background: rgba(255,255,255,0.98); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px);}
         #successOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #198754; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;}
     </style>
 </head>
 <body>
-
     <div class="app-header">
-        <div>
-            <span class="text-muted small">Xin chào,</span><br>
-            <strong style="font-size: 1.1rem;">{{ user.full_name }}</strong>
-        </div>
-        <a href="/logout" class="btn btn-sm btn-outline-danger rounded-pill px-3">Thoát</a>
+        <div><small>Xin chào,</small><br><strong>{{ user.full_name }}</strong></div>
+        <a href="/logout" class="btn btn-sm btn-outline-danger rounded-pill">Thoát</a>
     </div>
 
     <div class="info-card">
         <div class="plate-box">
-            <div class="plate-top">{{ plate_display.top }}</div>
-            <div class="plate-bot">{{ plate_display.bot }}</div>
-        </div>
-
-        <div class="info-row">
-            Loại xe: <span class="info-val">{{ user.vehicle_type }}</span>
+            <div class="plate-line plate-top-line">{{ plate_display.top }}</div>
+            <div class="plate-line">{{ plate_display.bot }}</div>
         </div>
 
         <div class="mt-2">
+            Loại xe: <strong>{{ user.vehicle_type }}</strong><br>
+            Trạng thái: 
             {% if user.status == 0 %}
-                <span class="status-badge st-out">🔴 Đã Lấy (Xe ở ngoài)</span>
+                <span class="badge bg-warning text-dark rounded-pill mt-2">Đã Lấy (Ngoài bãi)</span>
             {% else %}
-                <span class="status-badge st-in">🟢 Đang Gửi (Trong bãi)</span>
+                <span class="badge bg-success rounded-pill mt-2">Đang Gửi (Trong bãi)</span>
             {% endif %}
         </div>
     </div>
 
-    <div class="container action-container">
+    <div class="container px-4">
         {% if user.status == 0 %}
             <button onclick="createQR('IN')" class="big-btn btn-in">
                 <div class="btn-icon">🅿️</div>
-                <div class="btn-text">Ấn để lấy mã Gửi Xe</div>
-                <div class="btn-sub">Tạo mã QR để vào bãi</div>
+                <div class="btn-text">Lấy mã Gửi Xe</div>
             </button>
         {% else %}
             <button onclick="createQR('OUT')" class="big-btn btn-out">
                 <div class="btn-icon">🚗</div>
-                <div class="btn-text">Ấn để lấy mã Lấy Xe</div>
-                <div class="btn-sub">Tạo mã QR để ra cổng</div>
+                <div class="btn-text">Lấy mã Lấy Xe</div>
             </button>
         {% endif %}
     </div>
 
-    <div class="log-footer">
+    <div class="text-center mt-4 text-muted small">
         <hr class="mx-5">
-        <div>🕒 Hoạt động gần nhất:</div>
-        <strong>{{ last_activity }}</strong>
+        Lần gần nhất: <strong>{{ last_activity }}</strong>
     </div>
 
     <div id="qrArea" style="display:none;">
-        <h2 id="qrTitle" class="fw-bold mb-4 text-center">...</h2>
-        
-        <div class="p-4 bg-white border rounded-4 shadow-lg text-center">
+        <h2 id="qrTitle" class="fw-bold mb-4">...</h2>
+        <div class="p-4 bg-white border rounded-4 shadow text-center">
             <div id="qrcode" class="mb-2"></div>
-            <small class="text-muted">Đưa mã này cho bảo vệ</small>
+            <small>Đưa cho bảo vệ</small>
         </div>
-        
-        <div class="mt-4 text-center">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <span class="text-dark fw-bold ms-2">Đang chờ xác nhận...</span>
-        </div>
-        
-        <div class="mt-3 text-danger fw-bold" id="timerCount">05:00</div>
-
-        <button onclick="location.reload()" class="btn btn-light rounded-pill px-5 mt-4 border shadow-sm">Đóng</button>
+        <div class="mt-4 fw-bold text-danger" id="timerCount">05:00</div>
+        <button onclick="location.reload()" class="btn btn-light rounded-pill px-5 mt-4 border">Đóng</button>
     </div>
 
     <div id="successOverlay">
-        <div class="mb-3" style="font-size: 5rem; animation: bounce 0.5s;">✅</div>
-        <h2 class="fw-bold">THÀNH CÔNG!</h2>
-        <p>Yêu cầu đã được xác nhận.</p>
+        <div style="font-size: 5rem;">✅</div>
+        <h2>THÀNH CÔNG!</h2>
     </div>
 
-    <style>
-        @keyframes bounce { 0% {transform: scale(0);} 80% {transform: scale(1.1);} 100% {transform: scale(1);} }
-    </style>
-
     <script>
-        let socket;
-        let qrInterval;
-
-        // Kết nối Socket
-        function initSocket() {
+        let socket, qrInterval;
+        window.onload = function() {
             socket = io();
-            socket.on('connect', function() {
-                socket.emit('join_room', { cccd: "{{ user.cccd }}" });
+            socket.on('connect', () => socket.emit('join_room', { cccd: "{{ user.cccd }}" }));
+            socket.on('confirmation_success', () => {
+                document.getElementById('successOverlay').style.display = 'flex';
+                setTimeout(() => location.reload(), 1500);
             });
+        };
 
-            // Khi Host xác nhận
-            socket.on('confirmation_success', function(data) {
-                showSuccessAndReload();
-            });
-        }
-
-        function createQR(actionType) {
-            fetch('/api/generate_qr', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({}) 
-            })
-            .then(res => {
-                if(res.status === 401) window.location.href = "/login?timeout=1";
-                return res.json();
-            })
-            .then(data => {
+        function createQR(type) {
+            fetch('/api/generate_qr', { method: 'POST' })
+            .then(r => r.status===401 ? location.href='/login' : r.json())
+            .then(d => {
                 document.getElementById('qrArea').style.display = 'flex';
-                const title = document.getElementById('qrTitle');
-                title.innerText = data.action_name;
-                title.style.color = actionType === "IN" ? "#198754" : "#fd7e14"; // Xanh hoặc Cam
-                
+                const t = document.getElementById('qrTitle');
+                t.innerText = d.action_name;
+                t.style.color = type==="IN"?"#198754":"#fd7e14";
                 document.getElementById('qrcode').innerHTML = "";
-                new QRCode(document.getElementById("qrcode"), {
-                    text: data.qr_data,
-                    width: 250,
-                    height: 250
-                });
-
-                startTimer(data.new_timeout);
+                new QRCode(document.getElementById("qrcode"), { text: d.qr_data, width:250, height:250 });
+                startTimer(d.new_timeout);
             });
         }
 
         function startTimer(duration) {
-            let timer = duration, minutes, seconds;
+            let timer = duration;
             clearInterval(qrInterval);
-            qrInterval = setInterval(function () {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
-
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
-
-                document.getElementById('timerCount').textContent = minutes + ":" + seconds;
-
-                if (--timer < 0) {
-                    clearInterval(qrInterval);
-                    alert("Mã QR đã hết hạn!");
-                    window.location.reload();
-                }
+            qrInterval = setInterval(() => {
+                let m = Math.floor(timer/60), s = timer%60;
+                document.getElementById('timerCount').innerText = `${m}:${s<10?'0'+s:s}`;
+                if(--timer < 0) { clearInterval(qrInterval); location.reload(); }
             }, 1000);
         }
-
-        function showSuccessAndReload() {
-            document.getElementById('successOverlay').style.display = 'flex';
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
-        }
-
-        window.onload = initSocket;
     </script>
 </body>
 </html>
