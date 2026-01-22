@@ -129,7 +129,7 @@ def register():
 def login():
     msg = ""
     if request.args.get('timeout'):
-        msg = "Hết phiên đăng nhập. Vui lòng nhập lại PIN."
+        msg = "Hết phiên đăng nhập. Vui lòng đăng nhập lại."
         
     if request.method == 'POST':
         cccd = request.form['cccd']
@@ -144,7 +144,7 @@ def login():
             # Tuy nhiên Flask session mặc định là cookie signed, ta giữ logic permanent=True
             return redirect(url_for('dashboard'))
         else:
-            msg = "Sai thông tin hoặc mã PIN!"
+            msg = "Sai CCCD hoặc mã PIN!"
             
     return render_template('login.html', msg=msg)
 
@@ -221,9 +221,9 @@ def process_qr():
         return jsonify({'error': 'QR ĐÃ CŨ HOẶC ĐÃ DÙNG'}), 409
     
     if action == "IN" and user.status == 1: 
-        return jsonify({'error': 'Xe đang TRONG bãi, không thể gửi lại!'}), 409
+        return jsonify({'error': 'Xe đang được gửi, không thể gửi lại!'}), 409
     if action == "OUT" and user.status == 0: 
-        return jsonify({'error': 'Xe đang NGOÀI bãi, không thể lấy!'}), 409
+        return jsonify({'error': 'Xe đang không được gửi, không thể lấy!'}), 409
     
     if data.get('confirm') == True:
         user.status = 1 if action == "IN" else 0

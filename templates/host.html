@@ -112,28 +112,28 @@
         <div class="scan-overlay"></div>
     </div>
     
-    <div id="manualInputFallback" style="display:none; position:fixed; bottom:20px; left:0; width:100%; padding:20px; background:rgba(255,255,255,0.9); z-index:50;">
-        <h5 class="text-center text-danger">Camera không detect? Nhập QR thủ công</h5>
-        <input id="qrManualInput" type="text" class="form-control mb-2" placeholder="Dán QR string vào đây">
-        <button class="btn btn-primary w-100" onclick="processManual()">Quét thủ công</button>
-    </div>
+//    <div id="manualInputFallback" style="display:none; position:fixed; bottom:20px; left:0; width:100%; padding:20px; background:rgba(255,255,255,0.9); z-index:50;">
+//        <h5 class="text-center text-danger">Camera không detect? Nhập QR thủ công</h5>
+//        <input id="qrManualInput" type="text" class="form-control mb-2" placeholder="Dán QR string vào đây">
+//        <button class="btn btn-primary w-100" onclick="processManual()">Quét thủ công</button>
+//    </div>
 
-    <div class="modal fade" id="manualModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Nhập Mã Thủ Công</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <textarea id="manualInput" class="form-control bg-secondary text-white border-0" rows="3" placeholder="Paste chuỗi QR vào đây..."></textarea>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" onclick="handleManual()" class="btn btn-primary w-100">KIỂM TRA</button>
-                </div>
-            </div>
-        </div>
-    </div>
+//    <div class="modal fade" id="manualModal" tabindex="-1">
+//        <div class="modal-dialog modal-dialog-centered">
+//            <div class="modal-content bg-dark text-white">
+//                <div class="modal-header border-secondary">
+//                    <h5 class="modal-title">Nhập Mã Thủ Công</h5>
+//                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+//                </div>
+//                <div class="modal-body">
+//                    <textarea id="manualInput" class="form-control bg-secondary text-white border-0" rows="3" placeholder="Paste chuỗi QR vào đây..."></textarea>
+//                </div>
+//                <div class="modal-footer border-secondary">
+//                    <button type="button" onclick="handleManual()" class="btn btn-primary w-100">KIỂM TRA</button>
+//                </div>
+//            </div>
+//        </div>
+//    </div>
 
     <div id="resultSheet" class="bottom-sheet">
         <div class="sheet-handle" id="sheetHandle"></div>
