@@ -386,7 +386,7 @@
             
             // Auto hide and remove DOM
             setTimeout(() => { 
-                const el = document.getElementById('toast-' + id);
+                const el = document.getElementById(`toast-${id}`);
                 if(el) {
                     el.style.opacity = '0';
                     setTimeout(() => el.remove(), 300);
