@@ -7,3 +7,4 @@ gunicorn==21.2.0
 greenlet==3.0.3
 Werkzeug==3.0.1
 python-dotenv==1.2.1
+Flask-Caching==2.1.0

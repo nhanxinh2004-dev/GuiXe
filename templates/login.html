@@ -5,37 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Đăng Nhập</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background-color: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
         .login-container { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 20px; }
         .app-logo { font-size: 4rem; margin-bottom: 10px; }
-        
-        .form-control-lg { 
-            border-radius: 12px; padding: 15px; font-size: 1.1rem; 
-            border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-        }
+        .form-control-lg { border-radius: 12px; padding: 15px; font-size: 1.1rem; border: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .form-control-lg:focus { border-color: #0d6efd; box-shadow: 0 0 0 4px rgba(13,110,253,0.15); }
-        
-        .btn-main { 
-            border-radius: 12px; padding: 15px; font-size: 1.2rem; font-weight: 800; 
-            box-shadow: 0 4px 10px rgba(13,110,253,0.3); margin-top: 25px; 
-            text-transform: uppercase; letter-spacing: 1px;
-        }
-        
-        .saved-user-card { 
-            background: white; padding: 25px 20px; border-radius: 20px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; margin-bottom: 20px; 
-        }
-        
-        /* Style riêng cho ô PIN */
-        .pin-input { 
-            letter-spacing: 15px; /* Giãn cách số cho dễ nhìn */
-            font-size: 2rem; 
-            text-align: center; 
-            font-weight: 900; 
-            font-family: monospace;
-            background-color: #fff;
-        }
+        .btn-main { border-radius: 12px; padding: 15px; font-size: 1.2rem; font-weight: 800; box-shadow: 0 4px 10px rgba(13,110,253,0.3); margin-top: 25px; text-transform: uppercase; letter-spacing: 1px; }
+        .saved-user-card { background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; margin-bottom: 20px; }
+        .pin-input { letter-spacing: 15px; font-size: 2rem; text-align: center; font-weight: 900; font-family: monospace; background-color: #fff; }
+        .eye-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d; font-size: 1.2rem;}
     </style>
 </head>
 <body>
@@ -49,13 +29,14 @@
         <div class="alert alert-danger text-center rounded-4 shadow-sm fw-bold">{{ msg }}</div>
         {% endif %}
 
-        <form action="/login" method="POST" onsubmit="handleLogin()">
+        <form action="/login" method="POST" onsubmit="return handleLogin()">
             <div id="cccdGroup">
                 <label class="fw-bold text-muted ms-2 mb-1">Số CCCD</label>
                 <input type="text" id="cccdInput" name="cccd" 
                        class="form-control form-control-lg mb-3" 
                        placeholder="Nhập 12 số CCCD" 
-                       inputmode="numeric" pattern="[0-9]*" maxlength="12" required>
+                       inputmode="numeric" pattern="[0-9]{12}" maxlength="12" required
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')">
             </div>
 
             <div id="welcomeGroup" class="saved-user-card" style="display:none;">
@@ -66,16 +47,30 @@
                 </div>
             </div>
 
-            <div class="mt-2">
+            <div class="mt-2 position-relative">
                 <label class="fw-bold text-muted ms-2 mb-1">Mã PIN</label>
-                <input type="password" name="pin" 
-                       class="form-control form-control-lg pin-input" 
-                       required placeholder="••••••" 
-                       maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                <div style="position: relative;">
+                    <input type="password" id="pinInput" name="pin" 
+                           class="form-control form-control-lg pin-input" 
+                           required placeholder="••••••" 
+                           maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="off"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <i class="fas fa-eye eye-icon" onclick="togglePin()"></i>
+                </div>
                 <div class="text-center mt-3 text-muted small">Nhập 6 số bảo mật</div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 btn-main">ĐĂNG NHẬP</button>
+            <div class="form-check mt-3 ms-2" id="rememberCheckDiv">
+                <input class="form-check-input" type="checkbox" name="remember" id="rememberMe" checked>
+                <label class="form-check-label text-muted" for="rememberMe">
+                    Ghi nhớ thiết bị này
+                </label>
+            </div>
+
+            <button type="submit" id="btnLogin" class="btn btn-primary w-100 btn-main">
+                <span id="btnText">ĐĂNG NHẬP</span>
+                <span id="btnSpinner" class="spinner-border spinner-border-sm" style="display:none;"></span>
+            </button>
         </form>
 
         <div class="mt-4 text-center">
@@ -88,17 +83,49 @@
             const savedCCCD = localStorage.getItem('parking_cccd');
             if(savedCCCD) {
                 document.getElementById('cccdGroup').style.display = 'none';
+                document.getElementById('rememberCheckDiv').style.display = 'none'; // Đã nhớ rồi thì ẩn
                 document.getElementById('welcomeGroup').style.display = 'block';
                 document.getElementById('savedCCCDDisplay').innerText = formatCCCD(savedCCCD);
                 document.getElementById('cccdInput').value = savedCCCD;
             }
         }
 
-        function handleLogin() {
-            const val = document.getElementById('cccdInput').value;
-            if(val && val.length === 12) {
-                localStorage.setItem('parking_cccd', val);
+        function togglePin() {
+            const input = document.getElementById('pinInput');
+            const icon = document.querySelector('.eye-icon');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
+        }
+
+        function handleLogin() {
+            const btn = document.getElementById('btnLogin');
+            const spinner = document.getElementById('btnSpinner');
+            const text = document.getElementById('btnText');
+            
+            // Client Validation
+            const cccd = document.getElementById('cccdInput').value;
+            const pin = document.getElementById('pinInput').value;
+
+            if (cccd.length !== 12) { alert('CCCD phải đủ 12 số'); return false; }
+            if (pin.length !== 6) { alert('PIN phải đủ 6 số'); return false; }
+
+            // UX Loading
+            btn.disabled = true;
+            text.style.display = 'none';
+            spinner.style.display = 'inline-block';
+
+            // Save LocalStorage if checked
+            if(document.getElementById('rememberMe').checked) {
+                localStorage.setItem('parking_cccd', cccd);
+            }
+            return true;
         }
 
         function forgetUser() {

@@ -7,15 +7,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
         body { background-color: #000; font-family: sans-serif; overflow: hidden; }
         
-        /* SCANNER AREA */
         #reader { width: 100%; height: 100vh; object-fit: cover; }
         #reader video { object-fit: cover; width: 100% !important; height: 100% !important; }
         
-        /* LASER SCAN EFFECT */
         .scan-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,255,0,0.1) 51%, rgba(0,0,0,0) 52%);
@@ -25,7 +24,6 @@
         }
         @keyframes scan { 0% {background-position: 0% 0%;} 100% {background-position: 0% 200%;} }
 
-        /* WELCOME SCREEN */
         #welcomeScreen {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: #121212; z-index: 50;
@@ -42,75 +40,49 @@
         }
         .btn-start:active { transform: scale(0.95); }
 
-        /* BOTTOM SHEET (RESULT) */
+        /* [IMPROVED] Bottom Sheet Swipeable */
         .bottom-sheet {
             position: fixed; bottom: -100%; left: 0; width: 100%;
             background: #1e1e1e; border-radius: 25px 25px 0 0;
             padding: 20px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             z-index: 100; box-shadow: 0 -5px 30px rgba(0,0,0,0.5);
             display: flex; flex-direction: column; align-items: center;
-            max-height: 85vh; overflow-y: auto;
+            max-height: 90vh; overflow-y: auto;
         }
         .bottom-sheet.show { bottom: 0; }
-        .sheet-handle { width: 50px; height: 5px; background: #444; border-radius: 10px; margin-bottom: 20px; }
+        .sheet-handle { width: 60px; height: 6px; background: #555; border-radius: 10px; margin-bottom: 25px; cursor: pointer;}
 
-        /* REALISTIC PLATE STYLE */
         .plate-container {
             position: relative;
-            background: #f4c402; /* Màu vàng biển số */
-            border: 3px solid #000;
-            border-radius: 8px;
-            padding: 10px 20px;
+            background: #f4c402; border: 3px solid #000;
+            border-radius: 8px; padding: 10px 20px;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-            color: #000;
-            text-align: center;
-            min-width: 250px;
+            margin-bottom: 20px; color: #000; text-align: center; min-width: 250px;
         }
-        /* Giả lập ốc vít */
-        .plate-bolt {
-            width: 10px; height: 10px; background: #888; border-radius: 50%;
-            position: absolute; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
-        }
+        .plate-bolt { width: 10px; height: 10px; background: #888; border-radius: 50%; position: absolute; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5); }
         .bolt-tl { top: 8px; left: 8px; } .bolt-tr { top: 8px; right: 8px; }
         .bolt-bl { bottom: 8px; left: 8px; } .bolt-br { bottom: 8px; right: 8px; }
 
-        .plate-text {
-            font-family: 'Chakra Petch', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            line-height: 1;
-        }
+        .plate-text { font-family: 'Chakra Petch', sans-serif; font-weight: 700; text-transform: uppercase; line-height: 1; }
         .plate-top { font-size: 1.8rem; margin-bottom: 5px; }
         .plate-bot { font-size: 2.5rem; letter-spacing: 2px; }
 
-        /* BUTTONS & UI ELEMENTS */
         .btn-confirm {
             background: linear-gradient(45deg, #198754, #20c997);
             border: none; padding: 15px; font-weight: 800; font-size: 1.2rem;
             border-radius: 15px; width: 100%; margin-bottom: 10px;
             box-shadow: 0 4px 15px rgba(25, 135, 84, 0.4);
         }
-        .btn-cancel {
-            background: #333; color: #fff; border: none; padding: 15px;
-            font-weight: 600; border-radius: 15px; width: 100%;
-        }
+        .btn-cancel { background: #333; color: #fff; border: none; padding: 15px; font-weight: 600; border-radius: 15px; width: 100%; }
 
-        /* HEADER CONTROLS */
-        .header-controls {
-            position: fixed; top: 15px; right: 15px; z-index: 20;
-            display: flex; gap: 10px;
-        }
+        .header-controls { position: fixed; top: 15px; right: 15px; z-index: 20; display: flex; gap: 10px; }
         .glass-btn {
             background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white; width: 45px; height: 45px; border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.3); color: white; width: 45px; height: 45px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center; text-decoration: none;
         }
 
-        /* TOAST NOTIFICATION */
-        .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; }
+        .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; width: 90%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
 <body>
@@ -125,7 +97,7 @@
     </div>
 
     <div class="header-controls">
-        <a href="#" onclick="alert('Tính năng nhập tay đang phát triển')" class="glass-btn" aria-label="Nhập thủ công">
+        <a href="#" data-bs-toggle="modal" data-bs-target="#manualModal" class="glass-btn" aria-label="Nhập thủ công">
             <i class="fas fa-keyboard"></i>
         </a>
         <a href="/" class="glass-btn bg-danger border-0" aria-label="Thoát">
@@ -140,8 +112,25 @@
         <div class="scan-overlay"></div>
     </div>
 
+    <div class="modal fade" id="manualModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Nhập Mã Thủ Công</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <textarea id="manualInput" class="form-control bg-secondary text-white border-0" rows="3" placeholder="Paste chuỗi QR vào đây..."></textarea>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" onclick="handleManual()" class="btn btn-primary w-100">KIỂM TRA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="resultSheet" class="bottom-sheet">
-        <div class="sheet-handle"></div>
+        <div class="sheet-handle" id="sheetHandle"></div>
         
         <div id="actionBadge" class="badge rounded-pill px-4 py-2 mb-3 fs-6">...</div>
         
@@ -173,9 +162,21 @@
     <audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let scanner, currQR;
         const beepSound = document.getElementById('beep');
+        const sheet = document.getElementById('resultSheet');
+
+        // [NEW] Swipe logic
+        let startY, currentY;
+        const handle = document.getElementById('sheetHandle');
+        
+        handle.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
+        handle.addEventListener('touchmove', (e) => {
+            currentY = e.touches[0].clientY;
+            if (currentY - startY > 50) closeSheet(); // Swipe down > 50px
+        });
 
         function startCam() {
             document.getElementById('welcomeScreen').style.display='none';
@@ -184,16 +185,26 @@
             scanner = new Html5Qrcode("reader");
             const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
             
-            // Prefer back camera
             scanner.start({ facingMode: "environment" }, config, onScan, onScanError)
             .catch(err => showToast("Không thể mở Camera: " + err, 'danger'));
         }
 
+        // [NEW] Manual Input Handler
+        function handleManual() {
+            const val = document.getElementById('manualInput').value;
+            if(!val) return;
+            const modalEl = document.getElementById('manualModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            onScan(val.trim());
+        }
+
         function onScan(txt) {
-            // Feedback ngay lập tức
             beepSound.play();
-            hapticFeedback([50]); // Rung nhẹ
-            scanner.pause(); // Dừng quét tạm thời
+            hapticFeedback([50]); 
+            if(scanner && scanner.getState() === Html5QrcodeScannerState.SCANNING) {
+                scanner.pause();
+            }
             
             showToast("Đang kiểm tra...", "info");
             
@@ -205,7 +216,7 @@
             .then(d => {
                 if(d.error) {
                     showToast(d.error, 'danger');
-                    hapticFeedback([100, 50, 100]); // Rung lỗi (dài-ngắn-dài)
+                    hapticFeedback([100, 50, 100]); 
                     setTimeout(resetScanner, 2000);
                 } else {
                     currQR = txt;
@@ -218,12 +229,9 @@
             });
         }
 
-        function onScanError(err) {
-            // Không làm gì để tránh spam log
-        }
+        function onScanError(err) {}
 
         function showResult(data) {
-            // Update UI
             const badge = document.getElementById('actionBadge');
             const isIN = data.req_action.includes('GỬI');
             
@@ -238,13 +246,12 @@
             document.getElementById('vehType').innerText = data.vehicle_type;
             document.getElementById('cccdDisplay').innerText = data.cccd;
 
-            // Reset button state
             const btn = document.getElementById('btnConf');
             btn.innerHTML = `<span>XÁC NHẬN</span>`;
             btn.disabled = false;
             document.getElementById('btnCancel').disabled = false;
 
-            document.getElementById('resultSheet').classList.add('show');
+            sheet.classList.add('show');
         }
 
         function confirmAction() {
@@ -261,7 +268,16 @@
             .then(d => {
                 if(d.success) {
                     showToast('THÀNH CÔNG!', 'success');
-                    hapticFeedback([100, 50, 100, 50, 200]); // Rung kiểu thành công
+                    hapticFeedback([100, 50, 100, 50, 200]);
+                    
+                    // [NEW] Confetti Effect
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.8 },
+                        colors: ['#28a745', '#ffffff']
+                    });
+
                     closeSheet();
                 } else {
                     showToast(d.error, 'danger');
@@ -275,37 +291,46 @@
         }
 
         function closeSheet() {
-            document.getElementById('resultSheet').classList.remove('show');
+            sheet.classList.remove('show');
             setTimeout(resetScanner, 500);
         }
 
         function resetScanner() {
-            if(scanner) scanner.resume();
+            if(scanner && scanner.getState() === Html5QrcodeScannerState.PAUSED) {
+                scanner.resume();
+            }
         }
 
-        // Haptic helper
         function hapticFeedback(pattern) {
             if (navigator.vibrate) navigator.vibrate(pattern);
         }
 
-        // Toast Helper
+        // [IMPROVED] Stackable Toast
         function showToast(msg, type='primary') {
             const container = document.getElementById('notifyBanner');
             const color = type === 'danger' ? 'bg-danger' : (type === 'success' ? 'bg-success' : 'bg-primary');
+            const id = Date.now();
             
             const toastHTML = `
-                <div class="toast show align-items-center text-white ${color} border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                <div id="toast-${id}" class="toast show align-items-center text-white ${color} border-0 shadow" role="alert" style="transition:0.3s">
                     <div class="d-flex">
-                        <div class="toast-body fw-bold">
-                            ${msg}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        <div class="toast-body fw-bold">${msg}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                     </div>
                 </div>`;
             
-            container.innerHTML = toastHTML;
-            // Auto hide after 3s
-            setTimeout(() => { container.innerHTML = ''; }, 3000);
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = toastHTML;
+            container.appendChild(wrapper.firstChild);
+            
+            // Auto hide and remove DOM
+            setTimeout(() => { 
+                const el = document.getElementById(`toast-${id}`);
+                if(el) {
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 300);
+                }
+            }, 3000);
         }
     </script>
 </body>

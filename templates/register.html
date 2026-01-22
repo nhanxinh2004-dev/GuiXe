@@ -17,8 +17,9 @@
             
             <form action="/register" method="POST" onsubmit="return validateForm()">
                 <div class="form-floating mb-3">
-                    <input type="text" name="cccd" class="form-control" placeholder="CCCD" 
-                           inputmode="numeric" pattern="[0-9]*" maxlength="12" required>
+                    <input type="text" name="cccd" id="cccd" class="form-control" placeholder="CCCD" 
+                           inputmode="numeric" pattern="[0-9]{12}" maxlength="12" required
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                     <label>Số CCCD (12 số)</label>
                 </div>
 
@@ -26,14 +27,16 @@
                     <div class="col-6">
                         <div class="form-floating">
                             <input type="password" id="pin" name="pin" class="form-control" placeholder="PIN" 
-                                   maxlength="6" inputmode="numeric" pattern="[0-9]*" required>
+                                   maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             <label>Mã PIN (6 số)</label>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="form-floating">
                             <input type="password" id="confirm_pin" class="form-control" placeholder="Nhập lại" 
-                                   maxlength="6" inputmode="numeric" pattern="[0-9]*" required>
+                                   maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             <label>Nhập lại PIN</label>
                         </div>
                     </div>
@@ -52,7 +55,7 @@
                 </div>
 
                 <div class="form-floating mb-3">
-                    <input type="text" name="license_plate" class="form-control" placeholder="Biển số" required>
+                    <input type="text" name="license_plate" class="form-control" placeholder="Biển số" required style="text-transform: uppercase;">
                     <label>Biển số xe (VD: 29A1-12345)</label>
                 </div>
                 <div class="form-floating mb-3">
@@ -62,13 +65,15 @@
 
                 <div class="form-floating mb-4">
                     <select name="status" class="form-select">
-                        <option value="0">Xe Đang Gửi</option>
-                        <option value="1">Xe Đang Không Gửi</option>
+                        <option value="0">Xe Đang Gửi (Ở trong bãi)</option> <option value="1">Xe Đang Đi (Ở ngoài bãi)</option>
                     </select>
-                    <label>Trạng thái hiện tại của xe</label>
+                    <label>Trạng thái hiện tại</label>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100 btn-reg shadow">ĐĂNG KÝ</button>
+                <button type="submit" id="btnReg" class="btn btn-primary w-100 btn-reg shadow">
+                    <span id="btnRegText">ĐĂNG KÝ</span>
+                    <span id="btnRegSpinner" class="spinner-border spinner-border-sm" style="display:none;"></span>
+                </button>
             </form>
         </div>
         <div class="text-center pb-4 mt-2">
@@ -78,13 +83,18 @@
 
     <script>
         function validateForm() {
+            const cccd = document.getElementById('cccd').value;
             const pin = document.getElementById('pin').value;
             const confirm = document.getElementById('confirm_pin').value;
             const err = document.getElementById('pinError');
 
+            if (cccd.length !== 12) {
+                alert("CCCD phải đủ 12 số!");
+                return false;
+            }
+
             if (pin !== confirm) {
                 err.style.display = 'block';
-                // Rung báo lỗi nếu trên mobile
                 if(navigator.vibrate) navigator.vibrate([50, 50, 50]);
                 return false;
             }
@@ -95,6 +105,12 @@
             }
 
             err.style.display = 'none';
+            
+            // Show Loading
+            document.getElementById('btnReg').disabled = true;
+            document.getElementById('btnRegText').style.display = 'none';
+            document.getElementById('btnRegSpinner').style.display = 'inline-block';
+            
             return true;
         }
     </script>

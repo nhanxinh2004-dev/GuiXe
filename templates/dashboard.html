@@ -73,6 +73,15 @@
             color: white; text-align: center; animation: fadeIn 0.3s;
         }
         @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+        
+        /* [NEW] Plate Animation */
+        @keyframes shake {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(1deg); }
+          75% { transform: rotate(-1deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .plate-container { animation: shake 0.5s ease-out; }
     </style>
 </head>
 <body>
@@ -160,6 +169,7 @@
         <p>Hệ thống đang cập nhật trạng thái...</p>
     </div>
 
+    <audio id="successSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"></audio>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let socket, qrInterval;
@@ -173,6 +183,9 @@
             
             // Khi Host xác nhận thành công -> User App tự reload
             socket.on('confirmation_success', () => {
+                // [NEW] Play Sound
+                try { document.getElementById('successSound').play(); } catch(e){}
+                
                 document.getElementById('qrArea').style.display = 'none';
                 document.getElementById('successOverlay').style.display = 'flex';
                 // Rung phản hồi nếu có

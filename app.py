@@ -4,19 +4,26 @@ eventlet.monkey_patch()
 import os
 import hashlib
 import time
-import secrets # MỚI: Dùng để tạo chuỗi ngẫu nhiên (Nonce)
+import secrets
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
 from flask_socketio import SocketIO, emit, join_room
+from flask_caching import Cache # [NEW]
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'super_secret_key_parking_demo')
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30) # Tăng lên 30p cho thoải mái
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
+
+# --- CACHING CONFIG [NEW] ---
+# Sử dụng SimpleCache cho môi trường dev/nhỏ. Với Prod, đổi sang 'RedisCache'
+app.config['CACHE_TYPE'] = 'SimpleCache' 
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+cache = Cache(app)
 
 # --- DATABASE ---
 db_url = os.environ.get('DATABASE_URL', 'sqlite:///parking.db')
@@ -39,9 +46,10 @@ class User(db.Model):
     license_plate = db.Column(db.String(20))
     vehicle_type = db.Column(db.String(50))
     status = db.Column(db.Integer, default=0) # 0: Ngoài, 1: Trong
-    
-    # MỚI: Lưu token QR gần nhất để chống dùng lại (Replay Attack)
     current_nonce = db.Column(db.String(50), nullable=True)
+
+    # [NEW] Indexing: Giúp query user theo CCCD cực nhanh khi dữ liệu lớn
+    __table_args__ = (db.Index('idx_user_cccd', 'cccd'),)
 
 class ParkingLog(db.Model):
     __tablename__ = 'parking_logs'
@@ -50,9 +58,11 @@ class ParkingLog(db.Model):
     action = db.Column(db.String(10)) # IN / OUT
     timestamp = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
+    # [NEW] Indexing: Query lịch sử nhanh hơn
+    __table_args__ = (db.Index('idx_log_cccd', 'cccd'),)
+
 # --- HELPER ---
 def hash_pin(pin):
-    # Hash SHA256 đơn giản (Để nâng cao hơn có thể thêm Salt sau)
     return hashlib.sha256(pin.encode()).hexdigest()
 
 def format_license_plate(plate):
@@ -85,16 +95,13 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # 1. Sanitize & Validate input
         raw_cccd = request.form['cccd']
         cccd = ''.join(filter(str.isdigit, raw_cccd))
         
-        # Validate CCCD 12 số
         if len(cccd) != 12:
             return "Lỗi: CCCD phải đủ 12 số!", 400
 
         pin = request.form['pin']
-        # Validate PIN 6 số
         if len(pin) != 6 or not pin.isdigit():
             return "Lỗi: PIN phải là 6 chữ số!", 400
 
@@ -127,12 +134,14 @@ def login():
     if request.method == 'POST':
         cccd = request.form['cccd']
         pin = request.form['pin']
+        remember = request.form.get('remember') # [NEW] Checkbox Remember Me
         
         user = db.session.get(User, cccd)
         if user and user.pin_hash == hash_pin(pin):
             session['cccd'] = cccd
-            # Lưu session vĩnh viễn (theo config lifetime) để không bị logout quá nhanh
             session.permanent = True 
+            # Nếu không tick remember, chỉnh lại lifetime ngắn hơn (VD: session tắt khi đóng browser)
+            # Tuy nhiên Flask session mặc định là cookie signed, ta giữ logic permanent=True
             return redirect(url_for('dashboard'))
         else:
             msg = "Sai thông tin hoặc mã PIN!"
@@ -146,6 +155,7 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
+    # Không cache trang này vì chứa User State và Nonce động
     if 'cccd' not in session: return redirect(url_for('login'))
     user = db.session.get(User, session['cccd'])
     if not user: return redirect(url_for('logout'))
@@ -153,7 +163,6 @@ def dashboard():
     last_log = ParkingLog.query.filter_by(cccd=user.cccd).order_by(ParkingLog.timestamp.desc()).first()
     last_activity = "Chưa có lịch sử"
     if last_log:
-        # Chuyển đổi múi giờ hiển thị (UTC -> VN)
         vn_time = last_log.timestamp + timedelta(hours=7)
         last_activity = vn_time.strftime("%H:%M %d/%m/%Y") + (" (Gửi)" if last_log.action=="IN" else " (Lấy)")
     
@@ -164,6 +173,8 @@ def dashboard():
 
 @app.route('/host')
 def host():
+    # Có thể cache template host vì nó tĩnh, data load qua API
+    # @cache.cached(timeout=600) 
     return render_template('host.html')
 
 # --- API ---
@@ -174,21 +185,13 @@ def generate_qr():
     user = db.session.get(User, session['cccd'])
     if not user: return jsonify({'error': 'User invalid'}), 401
     
-    # 1. Xác định hành động dựa trên trạng thái hiện tại (Server-side Logic)
-    # Nếu Status = 0 (Ngoài) -> Chỉ được tạo mã IN
-    # Nếu Status = 1 (Trong) -> Chỉ được tạo mã OUT
     action = "IN" if user.status == 0 else "OUT"
+    nonce = secrets.token_hex(4)
     
-    # 2. Tạo Nonce (Mã ngẫu nhiên dùng 1 lần)
-    nonce = secrets.token_hex(4) # VD: 'a1b2c3d4'
-    
-    # 3. Lưu Nonce vào DB để đối chiếu sau này
     user.current_nonce = nonce
     db.session.commit()
     
-    expire_timestamp = int(time.time()) + 300 # 5 phút
-    
-    # Format QR: CCCD | ACTION | EXPIRE | NONCE
+    expire_timestamp = int(time.time()) + 300 
     qr_data = f"{user.cccd}|{action}|{expire_timestamp}|{nonce}"
     
     return jsonify({
@@ -202,45 +205,36 @@ def process_qr():
     data = request.json
     try:
         parts = data.get('qr_string').split('|')
-        # Format mới phải có 4 phần
         if len(parts) != 4: return jsonify({'error': 'QR sai định dạng (cũ)'}), 400
         
         cccd, action, expire, nonce = parts[0], parts[1], int(parts[2]), parts[3]
     except:
         return jsonify({'error': 'QR lỗi dữ liệu'}), 400
         
-    # CHECK 1: Thời gian
     if int(time.time()) > expire: 
         return jsonify({'error': 'QR ĐÃ HẾT HẠN'}), 400
     
     user = db.session.get(User, cccd)
     if not user: return jsonify({'error': 'User không tồn tại'}), 404
     
-    # CHECK 2: Nonce (Chống dùng lại)
     if user.current_nonce != nonce:
         return jsonify({'error': 'QR ĐÃ CŨ HOẶC ĐÃ DÙNG'}), 409
     
-    # CHECK 3: Trạng thái Logic (Chặn xung đột)
     if action == "IN" and user.status == 1: 
         return jsonify({'error': 'Xe đang TRONG bãi, không thể gửi lại!'}), 409
     if action == "OUT" and user.status == 0: 
         return jsonify({'error': 'Xe đang NGOÀI bãi, không thể lấy!'}), 409
     
-    # --- XÁC NHẬN THÀNH CÔNG ---
     if data.get('confirm') == True:
-        # Đảo trạng thái
         user.status = 1 if action == "IN" else 0
-        # Xóa nonce để không dùng lại được nữa
         user.current_nonce = None 
         
         db.session.add(ParkingLog(cccd=cccd, action=action))
         db.session.commit()
         
-        # Bắn socket báo User App
         socketio.emit('confirmation_success', {'status':'ok'}, to=cccd)
         return jsonify({'success': True})
     
-    # Trả về thông tin preview cho bảo vệ
     return jsonify({
         'cccd': user.cccd,
         'full_name': user.full_name,
@@ -251,7 +245,6 @@ def process_qr():
         'valid': True
     })
 
-# --- SOCKET ---
 @socketio.on('join_room')
 def on_join(data):
     join_room(data.get('cccd'))
